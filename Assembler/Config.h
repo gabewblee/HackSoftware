@@ -9,10 +9,7 @@
 #include <string.h>
 
 // Maximum Lengths
-#define MAX_PATH_LENGTH   1024
-#define MAX_LINE_LENGTH   1024
-#define MAX_NAME_LENGTH   32
-#define MAX_NUM_SYMBOLS   1000
+#define MAX_LINE_LENGTH   256
 
 // Command Types
 #define A_COMMAND   -1
@@ -99,7 +96,7 @@
 
 // Symbol Definition
 typedef struct Symbol{
-    char name[MAX_NAME_LENGTH];
+    char * name;
     uint16_t address;
     struct Symbol * next;
 } Symbol;

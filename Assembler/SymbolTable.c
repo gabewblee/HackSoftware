@@ -39,8 +39,15 @@ void addEntry(SymbolTable * symbolTable, const char * symbol, uint16_t address) 
             exit(1);
         }
         
-        snprintf(newSymbol->name, MAX_NAME_LENGTH, "%s", symbol);
-        newSymbol->name[MAX_NAME_LENGTH - 1] = '\0';
+        size_t nameLen = strlen(symbol) + 1;
+        newSymbol->name = malloc(nameLen);
+        if (newSymbol->name == NULL) {
+            fprintf(stderr, "Error: Memory allocation failed!\n");
+            free(newSymbol);
+            exit(1);
+        }
+        
+        strcpy(newSymbol->name, symbol);
         newSymbol->address = address;
         newSymbol->next = NULL;
         
@@ -81,6 +88,7 @@ void cleanupSymbolTable(SymbolTable * symbolTable) {
     Symbol * curr = symbolTable->head;
     while (curr != NULL) {
         Symbol * next = curr->next;
+        free(curr->name);
         free(curr);
         curr = next;
     }

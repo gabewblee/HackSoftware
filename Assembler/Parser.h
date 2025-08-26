@@ -10,5 +10,6 @@ char * getSymbol(const char * line);
 char * getDest(const char * line);
 char * getComp(const char * line);
 char * getJump(const char * line);
+void freeParserStrings(char * symbol, char * dest, char * comp, char * jump);
 
 #endif

@@ -9,16 +9,30 @@ int main(int argc, char * argv[]) {
         return 1;
     }    
 
-    char fileName[MAX_PATH_LENGTH];
-    strncpy(fileName, argv[1], sizeof(fileName));
-    fileName[sizeof(fileName) - 1] = '\0';
+    size_t inputLen = strlen(argv[1]);
+    char * fileName = malloc(inputLen + 1);
+    if (fileName == NULL) {
+        fprintf(stderr, "Error: Memory allocation failed\n");
+        return 1;
+    }
+    
+    strcpy(fileName, argv[1]);
 
     char * extension = strrchr(fileName, '.');
     if (extension == NULL || strcmp(extension, ".asm") != 0) {
         fprintf(stderr, "Error: Input file must have .asm extension\n");
+        free(fileName);
         return 1;
     }
 
+    size_t newLen = (extension - fileName) + 6;
+    char * newFileName = realloc(fileName, newLen);
+    if (newFileName == NULL) {
+        fprintf(stderr, "Error: Memory allocation failed\n");
+        free(fileName);
+        return 1;
+    }
+    fileName = newFileName;
     strcpy(extension, ".hack");
 
     FILE * inputFile = fopen(argv[1], "r");
@@ -27,7 +41,7 @@ int main(int argc, char * argv[]) {
         return 1;
     }
 
-    FILE *outputFile = fopen(fileName, "w");
+    FILE * outputFile = fopen(fileName, "w");
     if (!outputFile) {
         perror("fopen output failed");
         fclose(inputFile);
@@ -62,10 +76,10 @@ int main(int argc, char * argv[]) {
 
     // Second Pass: Generate Code
     rewind(inputFile);
-    const char *toWrite;
+    const char * toWrite;
 
     while (fgets(currLine, sizeof(currLine), inputFile)) {
-        char *trimmed = removeWhitespace(currLine);
+        char * trimmed = removeWhitespace(currLine);
         if (trimmed == NULL) {
             continue;
         }
@@ -73,10 +87,11 @@ int main(int argc, char * argv[]) {
         int commandType = getCommandType(trimmed);
 
         if (commandType == A_COMMAND) {
-            char *symbol = getSymbol(trimmed);
+            char * symbol = getSymbol(trimmed);
 
             if (isNumber(symbol)) {
                 toWrite = convertAddress(symbol);
+                free(symbol);
             } else {
                 if (!contains(&symbolTable, symbol)) {
                     addEntry(&symbolTable, symbol, symbolTable.ramAddress);
@@ -86,18 +101,20 @@ int main(int argc, char * argv[]) {
                 char buffer[5];
                 snprintf(buffer, sizeof(buffer), "%u", address);
                 toWrite = convertAddress(buffer);
+                free(symbol);
             }
         } 
         else if (commandType == C_COMMAND) {
-            char *dest = getDest(trimmed);
-            char *comp = getComp(trimmed);
-            char *jump = getJump(trimmed); 
-            const char *destBits = convertDest(dest);
-            const char *compBits = convertComp(comp);
-            const char *jumpBits = convertJump(jump);
+            char * dest = getDest(trimmed);
+            char * comp = getComp(trimmed);
+            char * jump = getJump(trimmed); 
+            const char * destBits = convertDest(dest);
+            const char * compBits = convertComp(comp);
+            const char * jumpBits = convertJump(jump);
             static char binary[17];
             snprintf(binary, sizeof(binary), "111%s%s%s", compBits, destBits, jumpBits);
             toWrite = binary;
+            freeParserStrings(NULL, dest, comp, jump);
         } 
         else if (commandType == L_COMMAND) {
             continue;
@@ -116,5 +133,6 @@ int main(int argc, char * argv[]) {
     fclose(inputFile);
     fclose(outputFile);
     cleanupSymbolTable(&symbolTable);
+    free(fileName);
     return 0;
 }
