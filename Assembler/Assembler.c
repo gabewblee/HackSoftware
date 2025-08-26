@@ -55,6 +55,7 @@ int main(int argc, char * argv[]) {
             fprintf(stderr, "Error: Unknown command type\n");
             fclose(inputFile);
             fclose(outputFile);
+            cleanupSymbolTable(&symbolTable);
             return 1;
         }
     }
@@ -105,6 +106,7 @@ int main(int argc, char * argv[]) {
             fprintf(stderr, "Error: Unknown command type\n");
             fclose(inputFile);
             fclose(outputFile);
+            cleanupSymbolTable(&symbolTable);
             return 1;
         }
 
