@@ -147,6 +147,5 @@ char * getJump(const char * line) {
     static char jump[MAX_LINE_LENGTH];
     strncpy(jump, semicolon + 1, sizeof(jump) - 1);
     jump[sizeof(jump) - 1] = '\0';
-    printf("Jump part: '%s'\n", jump);
     return jump;
 }

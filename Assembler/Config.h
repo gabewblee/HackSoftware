@@ -11,9 +11,8 @@
 // Maximum Lengths
 #define MAX_PATH_LENGTH   1024
 #define MAX_LINE_LENGTH   1024
-#define MAX_NAME_LENGTH   1024
-// #define MAX_NUM_SYMBOLS   16384
-// #define MAX_NUM_SYMBOLS   300
+#define MAX_NAME_LENGTH   32
+#define MAX_NUM_SYMBOLS   1000
 
 // Command Types
 #define A_COMMAND   -1
@@ -102,11 +101,13 @@
 typedef struct Symbol{
     char name[MAX_NAME_LENGTH];
     uint16_t address;
+    struct Symbol * next;
 } Symbol;
 
 // Symbol Table Definition
 typedef struct SymbolTable {
-    Symbol symbols[SCREEN];
+    Symbol * head;
+    Symbol * tail;
     uint16_t size;
     uint16_t romAddress;
     uint16_t ramAddress;

@@ -113,5 +113,6 @@ int main(int argc, char * argv[]) {
 
     fclose(inputFile);
     fclose(outputFile);
+    cleanupSymbolTable(&symbolTable);
     return 0;
 }
