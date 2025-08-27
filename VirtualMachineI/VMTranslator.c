@@ -1,11 +1,6 @@
 #include "Config.h"
 #include "CodeWriter.h"
 #include "Parser.h"
-#include <sys/stat.h>
-#include <dirent.h>
-#include <string.h>
-
-#define MAX_LINE_LENGTH 256
 
 FILE * createOutputFile(const char * basePath, const char * suffix) {
     size_t baseLen = strlen(basePath);
