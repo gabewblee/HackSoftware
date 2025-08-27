@@ -98,13 +98,12 @@ int main(int argc, char * argv[]) {
                     symbolTable.ramAddress++;
                 }
                 uint16_t address = getAddress(&symbolTable, symbol);
-                char buffer[5];
+                char buffer[6];
                 snprintf(buffer, sizeof(buffer), "%u", address);
                 toWrite = convertAddress(buffer);
                 free(symbol);
             }
-        } 
-        else if (commandType == C_COMMAND) {
+        } else if (commandType == C_COMMAND) {
             char * dest = getDest(trimmed);
             char * comp = getComp(trimmed);
             char * jump = getJump(trimmed); 
@@ -115,11 +114,9 @@ int main(int argc, char * argv[]) {
             snprintf(binary, sizeof(binary), "111%s%s%s", compBits, destBits, jumpBits);
             toWrite = binary;
             freeParserStrings(NULL, dest, comp, jump);
-        } 
-        else if (commandType == L_COMMAND) {
+        } else if (commandType == L_COMMAND) {
             continue;
-        } 
-        else {
+        } else {
             fprintf(stderr, "Error: Unknown command type\n");
             fclose(inputFile);
             fclose(outputFile);

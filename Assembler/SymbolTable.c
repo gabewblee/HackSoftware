@@ -33,7 +33,7 @@ void initSymbolTable(SymbolTable * symbolTable) {
 
 void addEntry(SymbolTable * symbolTable, const char * symbol, uint16_t address) {
     if (!contains(symbolTable, symbol)) {
-        Symbol* newSymbol = malloc(sizeof(Symbol));
+        Symbol * newSymbol = malloc(sizeof(Symbol));
         if (newSymbol == NULL) {
             fprintf(stderr, "Error: Memory allocation failed!\n");
             exit(1);

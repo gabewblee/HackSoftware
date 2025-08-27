@@ -58,7 +58,6 @@ char * getSymbol(const char * line) {
         const char * symbolStart = sign + 1;
         size_t length = strlen(symbolStart);
         
-        // Remove newline if present
         if (length > 0 && symbolStart[length - 1] == '\n') {
             length--;
         }
