@@ -3,7 +3,8 @@
 
 #include "Config.h"
 
-void setFileName(const char * fileName);
+void setFile(const char * fileName);
+void setFunction(const char * functionName);
 void writeInit(FILE * outputFile);
 void writeLabel(FILE * outputFile, const char * label);
 void writeGoto(FILE * outputFile, const char * label);

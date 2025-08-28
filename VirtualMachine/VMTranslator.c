@@ -21,14 +21,11 @@ int main(int argc, char * argv[]) {
             }
             
             char outputFileName[strlen(fileName) + strlen(dirName) + 5];
-            strcpy(outputFileName, fileName);
-            strcat(outputFileName, "/");
-            strcat(outputFileName, dirName);
-            strcat(outputFileName, ".asm");
+            snprintf(outputFileName, sizeof(outputFileName), "%s/%s.asm", fileName, dirName);
             
             FILE * outputFile = fopen(outputFileName, "w");
             if (outputFile == NULL) {
-                fprintf(stderr, "Error: Failed to create output file %s\n", outputFileName);
+                fprintf(stderr, "Error: Failed to open output file %s\n", outputFileName);
                 return 1;
             }
             
@@ -52,13 +49,13 @@ int main(int argc, char * argv[]) {
                 
                 FILE * inputFile = fopen(fullPath, "r");
                 if (inputFile == NULL) {
-                    fprintf(stderr, "Error: Failed to open file %s\n", fullPath);
+                    fprintf(stderr, "Error: Failed to input file\n");
                     closedir(dir);
                     fclose(outputFile);
                     return 1;
                 }
                 
-                setFileName(entry->d_name);
+                setFile(entry->d_name);
 
                 char currLine[MAX_LINE_LENGTH];
                 char arg1Buffer[MAX_ARG_LENGTH];
@@ -150,26 +147,23 @@ int main(int argc, char * argv[]) {
             
             FILE * inputFile = fopen(fileName, "r");
             if (inputFile == NULL) {
-                fprintf(stderr, "Error: Failed to open file %s\n", fileName);
+                fprintf(stderr, "Error: Failed to input file\n");
                 return 1;
             }
             
-            setFileName(fileName);
-            size_t fileNameLength = strlen(fileName);
-            fileName[fileNameLength - 3] = '\0';
+            fileName[strlen(fileName) - 3] = '\0';
+            setFile(fileName);
 
-            char outputFileName[strlen(fileName) + 4];
-            strcpy(outputFileName, fileName);
-            strcat(outputFileName, ".asm");
+            char outputFileName[strlen(fileName) + 5];
+            snprintf(outputFileName, sizeof(outputFileName), "%s.asm", fileName);
             
             FILE * outputFile = fopen(outputFileName, "w");
             if (outputFile == NULL) {
-                fprintf(stderr, "Error: Failed to create output file %s\n", outputFileName);
+                fprintf(stderr, "Error: Failed to open output file %s\n", outputFileName);
                 fclose(inputFile);
                 return 1;
             }
             
-            writeInit(outputFile);
             char currLine[MAX_LINE_LENGTH];
             char arg1Buffer[MAX_ARG_LENGTH];
             char arg2Buffer[MAX_ARG_LENGTH];

@@ -4,14 +4,15 @@ static int eqCounter = 0;
 static int gtCounter = 0;
 static int ltCounter = 0;
 static int returnCounter = 0;
-static char currFileName[MAX_FILENAME_LENGTH] = "";
+static char curr[MAX_FILENAME_LENGTH] = "";
+static char currFunction[MAX_FILENAME_LENGTH] = "";
 
-void setFileName(const char * fileName) {
-    strcpy(currFileName, fileName);
-    char * extension = strrchr(currFileName, '.');
-    if (extension && strcmp(extension, ".vm") == 0) {
-        *extension = '\0';
-    }
+void setFile(const char * fileName) {
+    strcpy(curr, fileName);
+}
+
+void setFunction(const char * functionName) {
+    strcpy(currFunction, functionName);
 }
 
 void writeInit(FILE * outputFile) {
@@ -23,11 +24,19 @@ void writeInit(FILE * outputFile) {
 }
 
 void writeLabel(FILE * outputFile, const char * label) {
-    fprintf(outputFile, "(%s)\n", label);
+    if (strlen(currFunction) > 0) {
+        fprintf(outputFile, "(%s$%s)\n", currFunction, label);
+    } else {
+        fprintf(outputFile, "(%s)\n", label);
+    }
 }
 
 void writeGoto(FILE * outputFile, const char * label) {
-    fprintf(outputFile, "@%s\n", label);
+    if (strlen(currFunction) > 0) {
+        fprintf(outputFile, "@%s$%s\n", currFunction, label);
+    } else {
+        fprintf(outputFile, "@%s\n", label);
+    }
     fprintf(outputFile, "0;JMP\n");
 }
 
@@ -35,7 +44,11 @@ void writeIf(FILE * outputFile, const char * label) {
     fprintf(outputFile, "@SP\n");
     fprintf(outputFile, "AM=M-1\n");
     fprintf(outputFile, "D=M\n");
-    fprintf(outputFile, "@%s\n", label);
+    if (strlen(currFunction) > 0) {
+        fprintf(outputFile, "@%s$%s\n", currFunction, label);
+    } else {
+        fprintf(outputFile, "@%s\n", label);
+    }
     fprintf(outputFile, "D;JNE\n");
 }
 
@@ -183,6 +196,7 @@ void writeReturn(FILE * outputFile) {
 }
 
 void writeFunction(FILE * outputFile, const char * functionName, int numLocals) {
+    setFunction(functionName);
     fprintf(outputFile, "(%s)\n", functionName);
     
     for (int i = 0; i < numLocals; i++) {
@@ -346,7 +360,7 @@ void writePushPop(FILE * outputFile, int commandType, const char * segment, cons
             fprintf(outputFile, "@SP\n");
             fprintf(outputFile, "M=M+1\n");
         } else if (strcmp(segment, "static") == 0) {
-            fprintf(outputFile, "@%s.%s\n", currFileName, index);
+            fprintf(outputFile, "@%s.%s\n", curr, index);
             fprintf(outputFile, "D=M\n");
             fprintf(outputFile, "@SP\n");
             fprintf(outputFile, "A=M\n");
@@ -436,7 +450,7 @@ void writePushPop(FILE * outputFile, int commandType, const char * segment, cons
             fprintf(outputFile, "@SP\n");
             fprintf(outputFile, "AM=M-1\n");
             fprintf(outputFile, "D=M\n");
-            fprintf(outputFile, "@%s.%s\n", currFileName, index);
+            fprintf(outputFile, "@%s.%s\n", curr, index);
             fprintf(outputFile, "M=D\n");
         } else if (strcmp(segment, "temp") == 0) {
             fprintf(outputFile, "@%s\n", index);
