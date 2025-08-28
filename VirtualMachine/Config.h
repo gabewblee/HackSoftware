@@ -13,7 +13,9 @@
 // Maximum Lengths
 #define MAX_LINE_LENGTH 256
 #define MAX_PATH_LENGTH 256
+#define MAX_FILENAME_LENGTH 256
 #define MAX_ARG_LENGTH 256
+#define MAX_RETURN_COUNTER 256
 
 // Command Types
 #define C_ARITHMETIC 0
