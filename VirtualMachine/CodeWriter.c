@@ -235,7 +235,7 @@ void writePushPop(FILE * outputFile, int commandType, const char * segment, cons
             fprintf(outputFile, "@R13\n");
             fprintf(outputFile, "M=D\n");
             fprintf(outputFile, "@SP\n");
-            fprintf(outputFile, "AM=M-1\n");
+            fprintf(outputFile, "AM=M-1\n"); 
             fprintf(outputFile, "D=M\n");
             fprintf(outputFile, "@R13\n");
             fprintf(outputFile, "A=M\n");
