@@ -1,3 +1,12 @@
+/**
+ * @file Config.h
+ * @brief Configuration and constants header for the Hack Virtual Machine Translator
+ * 
+ * This header file defines all constants, configuration values, and command
+ * type constants used throughout the VM Translator. It includes maximum
+ * length definitions and command type constants for all VM operations.
+ */
+
 #ifndef CONFIG_H
 #define CONFIG_H
 

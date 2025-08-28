@@ -1,8 +1,30 @@
+/**
+ * @file Assembler.c
+ * @brief Main implementation file for the Hack Assembler
+ * 
+ * This file contains the main entry point and core logic for the Hack Assembler,
+ * which translates Hack assembly language (.asm) files into Hack machine code (.hack).
+ * The assembler performs a two-pass process: first building a symbol table,
+ * then generating binary code.
+ */
+
 #include "Config.h"
 #include "Code.h"
 #include "Parser.h"
 #include "SymbolTable.h"
 
+/**
+ * @brief Main entry point for the Hack Assembler
+ * 
+ * Processes command line arguments, validates input file format, and orchestrates
+ * the two-pass assembly process. The first pass builds the symbol table by
+ * processing labels (L-commands), while the second pass generates binary code
+ * for all assembly instructions.
+ * 
+ * @param argc Number of command line arguments
+ * @param argv Array of command line argument strings
+ * @return 0 on successful assembly, 1 on error
+ */
 int main(int argc, char * argv[]) {
     if (argc != 2 || strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
         fprintf(stderr, "Usage: Assembler [FILE]\n");

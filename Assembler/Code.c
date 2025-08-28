@@ -1,5 +1,25 @@
+/**
+ * @file Code.c
+ * @brief Binary code generation module for the Hack Assembler
+ * 
+ * This file contains functions that convert Hack assembly language components
+ * (addresses, destinations, computations, and jumps) into their corresponding
+ * binary representations according to the Hack machine language specification.
+ */
+
 #include "Code.h"
 
+/**
+ * @brief Converts a decimal address to 16-bit binary representation
+ * 
+ * Takes a decimal address string and converts it to a 16-bit binary string
+ * with the format "0xxxxxxxxxxxxxxx" where x represents the binary digits.
+ * The address must be in the range [0, 32767] (15-bit address space).
+ * 
+ * @param address String representation of decimal address
+ * @return Pointer to static buffer containing 16-bit binary string
+ * @note Function exits with error if address is out of valid range
+ */
 const char * convertAddress(const char * address) {
     static char binary[17];
     int addr = atoi(address);
@@ -18,6 +38,16 @@ const char * convertAddress(const char * address) {
     return binary;
 }
 
+/**
+ * @brief Converts destination mnemonic to 3-bit binary code
+ * 
+ * Maps destination mnemonics (M, D, MD, A, AM, AD, AMD) to their
+ * corresponding 3-bit binary representations as defined in the Hack
+ * machine language specification.
+ * 
+ * @param dest Destination mnemonic string (can be NULL)
+ * @return Pointer to 3-bit binary string constant
+ */
 const char * convertDest(const char * dest) {
     if (dest == NULL) {
         return DEST_NULL;
@@ -40,6 +70,16 @@ const char * convertDest(const char * dest) {
     }
 }
 
+/**
+ * @brief Converts computation mnemonic to 7-bit binary code
+ * 
+ * Maps computation mnemonics to their corresponding 7-bit binary
+ * representations. The computation field includes the 'a' bit that
+ * determines whether to use the A register (a=0) or M register (a=1).
+ * 
+ * @param comp Computation mnemonic string (can be NULL)
+ * @return Pointer to 7-bit binary string constant
+ */
 const char * convertComp(const char * comp) {
     if (comp == NULL) {
         return COMP_NULL;
@@ -104,6 +144,16 @@ const char * convertComp(const char * comp) {
     }
 }
 
+/**
+ * @brief Converts jump mnemonic to 3-bit binary code
+ * 
+ * Maps jump mnemonics (JGT, JEQ, JGE, JLT, JNE, JLE, JMP) to their
+ * corresponding 3-bit binary representations as defined in the Hack
+ * machine language specification.
+ * 
+ * @param jump Jump mnemonic string (can be NULL)
+ * @return Pointer to 3-bit binary string constant
+ */
 const char * convertJump(const char * jump) {
     if (jump == NULL) {
         return JUMP_NULL;

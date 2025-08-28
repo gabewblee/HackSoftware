@@ -1,5 +1,25 @@
+/**
+ * @file Parser.c
+ * @brief Assembly language parsing module for the Hack Assembler
+ * 
+ * This file contains functions for parsing Hack assembly language instructions,
+ * including command type identification, symbol extraction, and component
+ * parsing for A-commands and C-commands.
+ */
+
 #include "Parser.h"
 
+/**
+ * @brief Determines the type of assembly command
+ * 
+ * Analyzes a line of assembly code to determine whether it is an A-command
+ * (address instruction), C-command (compute instruction), or L-command
+ * (label definition).
+ * 
+ * @param line The assembly instruction line to analyze
+ * @return Command type constant (A_COMMAND, C_COMMAND, or L_COMMAND)
+ * @note Function exits with error if command type cannot be determined
+ */
 int getCommandType(const char * line) {
     if (strchr(line, '@') != NULL) { 
         return A_COMMAND;
@@ -13,6 +33,15 @@ int getCommandType(const char * line) {
     }
 }
 
+/**
+ * @brief Checks if a string represents a valid decimal number
+ * 
+ * Validates whether a string contains only decimal digits and represents
+ * a valid integer value.
+ * 
+ * @param line The string to check for numeric content
+ * @return true if the string is a valid number, false otherwise
+ */
 bool isNumber(const char * line) {
     if (*line == '\0') {
         return false;
@@ -22,6 +51,15 @@ bool isNumber(const char * line) {
     return *end == '\0';
 }
 
+/**
+ * @brief Removes whitespace and comments from assembly line
+ * 
+ * Strips leading/trailing whitespace and removes inline comments
+ * (everything from // to end of line) from an assembly instruction.
+ * 
+ * @param line The assembly line to clean
+ * @return Pointer to cleaned line, or NULL if line is empty after cleaning
+ */
 char * removeWhitespace(char * line) {
     char * comment = strstr(line, "//");
     if (comment) {
@@ -46,7 +84,17 @@ char * removeWhitespace(char * line) {
     return line;
 }
 
-
+/**
+ * @brief Extracts symbol from A-command or L-command
+ * 
+ * For A-commands, extracts the symbol following the @ symbol.
+ * For L-commands, extracts the label name between parentheses.
+ * 
+ * @param line The assembly instruction line
+ * @return Dynamically allocated string containing the symbol
+ * @note Caller is responsible for freeing the returned string
+ * @note Function exits with error if symbol cannot be extracted
+ */
 char * getSymbol(const char * line) {
     if (getCommandType(line) == A_COMMAND) {
         const char * sign = strchr(line, '@');
@@ -96,6 +144,16 @@ char * getSymbol(const char * line) {
     }
 }
 
+/**
+ * @brief Extracts destination field from C-command
+ * 
+ * Parses the destination part of a C-command (everything before the = sign).
+ * Returns NULL if no destination is specified.
+ * 
+ * @param line The C-command assembly line
+ * @return Dynamically allocated string containing destination, or NULL
+ * @note Caller is responsible for freeing the returned string
+ */
 char * getDest(const char * line) {
     char * equalSign = strchr(line, '=');
     if (equalSign == NULL) {
@@ -115,6 +173,16 @@ char * getDest(const char * line) {
     return dest;
 }
 
+/**
+ * @brief Extracts computation field from C-command
+ * 
+ * Parses the computation part of a C-command, which is the portion between
+ * the = and ; signs, or the entire command if no = or ; is present.
+ * 
+ * @param line The C-command assembly line
+ * @return Dynamically allocated string containing computation
+ * @note Caller is responsible for freeing the returned string
+ */
 char * getComp(const char * line) {
     const char * equalSign = strchr(line, '=');
     const char * semicolon = strchr(line, ';');
@@ -161,6 +229,16 @@ char * getComp(const char * line) {
     return comp;
 }
 
+/**
+ * @brief Extracts jump field from C-command
+ * 
+ * Parses the jump part of a C-command (everything after the ; sign).
+ * Returns NULL if no jump condition is specified.
+ * 
+ * @param line The C-command assembly line
+ * @return Dynamically allocated string containing jump condition, or NULL
+ * @note Caller is responsible for freeing the returned string
+ */
 char * getJump(const char * line) {
     const char * semicolon = strchr(line, ';');
 
@@ -187,6 +265,17 @@ char * getJump(const char * line) {
     return jump;
 }
 
+/**
+ * @brief Frees memory allocated by parser functions
+ * 
+ * Convenience function to free multiple dynamically allocated strings
+ * returned by parser functions. NULL pointers are safely ignored.
+ * 
+ * @param symbol Symbol string to free (can be NULL)
+ * @param dest Destination string to free (can be NULL)
+ * @param comp Computation string to free (can be NULL)
+ * @param jump Jump string to free (can be NULL)
+ */
 void freeParserStrings(char * symbol, char * dest, char * comp, char * jump) {
     if (symbol != NULL) {
         free(symbol);

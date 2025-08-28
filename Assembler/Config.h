@@ -1,3 +1,13 @@
+/**
+ * @file Config.h
+ * @brief Configuration and constants header for the Hack Assembler
+ * 
+ * This header file defines all constants, data structures, and configuration
+ * values used throughout the Hack Assembler. It includes command type constants,
+ * binary code mappings for the Hack machine language, predefined symbol values,
+ * and the symbol table data structures.
+ */
+
 #ifndef CONFIG_H
 #define CONFIG_H
 
@@ -94,14 +104,24 @@
 #define SCREEN   16384
 #define KBD      24576
 
-// Symbol Definition
+/**
+ * @brief Symbol structure for linked list implementation
+ * 
+ * Represents a single symbol-entry pair in the symbol table.
+ * Each symbol has a name and an associated memory address.
+ */
 typedef struct Symbol{
     char * name;
     uint16_t address;
     struct Symbol * next;
 } Symbol;
 
-// Symbol Table Definition
+/**
+ * @brief Symbol table structure
+ * 
+ * Contains a linked list of symbols and metadata about the table,
+ * including current ROM and RAM address counters for symbol resolution.
+ */
 typedef struct SymbolTable {
     Symbol * head;
     Symbol * tail;

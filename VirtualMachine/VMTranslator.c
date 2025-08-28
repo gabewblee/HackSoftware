@@ -1,7 +1,29 @@
+/**
+ * @file VMTranslator.c
+ * @brief Main implementation file for the Hack Virtual Machine Translator
+ * 
+ * This file contains the main entry point and core logic for the VM Translator,
+ * which translates Hack Virtual Machine (.vm) files into Hack assembly language (.asm).
+ * The translator supports both single file and directory processing, handling
+ * all VM commands including arithmetic, memory access, program flow, and function calls.
+ */
+
 #include "Config.h"
 #include "CodeWriter.h"
 #include "Parser.h"
 
+/**
+ * @brief Main entry point for the Hack Virtual Machine Translator
+ * 
+ * Processes command line arguments and orchestrates the translation of VM code
+ * to assembly code. Supports both single file and directory processing modes.
+ * For directories, processes all .vm files and generates a single .asm output
+ * file. For single files, generates a corresponding .asm file.
+ * 
+ * @param argc Number of command line arguments
+ * @param argv Array of command line argument strings
+ * @return 0 on successful translation, 1 on error
+ */
 int main(int argc, char * argv[]) {
     if (argc != 2 || strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
         fprintf(stderr, "Usage: VMTranslator [FILE]\n");
