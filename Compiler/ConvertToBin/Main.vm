@@ -1,0 +1,71 @@
+function Main.main 1
+push constant 8001
+push constant 16
+push constant 1
+pop temp 0
+push constant 8000
+pop local 0
+pop temp 0
+push constant 0
+return
+function Main.convert 3
+push constant 0
+not
+pop local 2
+label WHILE_EXP_0
+push argument 0
+not
+if-goto WHILE_END_1
+push constant 1
+push argument 0
+pop local 0
+push constant 16
+not
+if-goto IF_TRUE_2
+push argument 0
+push constant 0
+not
+if-goto IF_TRUE_5
+push constant 8000
+push constant 1
+pop temp 0
+goto IF_END_7
+label IF_TRUE_5
+push constant 8000
+push constant 0
+pop temp 0
+label IF_END_7
+goto IF_END_4
+label IF_TRUE_2
+push constant 0
+pop local 2
+label IF_END_4
+goto WHILE_EXP_0
+label WHILE_END_1
+push constant 0
+return
+function Main.nextMask 0
+push constant 0
+not
+if-goto IF_TRUE_8
+push constant 1
+return
+goto IF_END_10
+label IF_TRUE_8
+push constant 2
+return
+label IF_END_10
+function Main.fillMemory 0
+label WHILE_EXP_11
+push constant 0
+not
+if-goto WHILE_END_12
+push argument 0
+push argument 2
+pop temp 0
+push constant 1
+push constant 1
+goto WHILE_EXP_11
+label WHILE_END_12
+push constant 0
+return
