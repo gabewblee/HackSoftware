@@ -38,13 +38,14 @@ class JackTokenizer:
     def hasMoreTokens(self) -> bool:
         return self._index < len(self._tokens) - 1
     
-    def advance(self) -> None:
+    def advance(self) -> str:
         if self._index < len(self._tokens) - 1:
             self._index += 1
             self.currToken = self._tokens[self._index]
         else:
             self._index = len(self._tokens)
             self.currToken = None
+        return self.currToken
 
     def tokenType(self) -> str:
         if self.isKeyword():
@@ -60,5 +61,11 @@ class JackTokenizer:
         else:
             return "invalid"
     
+    def peek(self):
+        if self._index + 1 < len(self._tokens):
+            return self._tokens[self._index + 1]
+        return None
+
+
 
                 

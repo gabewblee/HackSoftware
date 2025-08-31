@@ -44,6 +44,18 @@ SYMBOLS = {
     '~'
 }
 
+operationMap = {
+    '+': 'add',
+    '-': 'sub',
+    '*': 'call Math.multiply 2',
+    '/': 'call Math.divide 2',
+    '&': 'and',
+    '|': 'or',
+    '<': 'lt',
+    '>': 'gt',
+    '=': 'eq',
+}
+
 # Regex
 REGEX_COMMENT_LINE      = r"//.*"
 REGEX_COMMENT_BLOCK     = r"/\*.*?\*/"

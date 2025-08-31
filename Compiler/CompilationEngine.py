@@ -1,151 +1,241 @@
 from JackTokenizer import JackTokenizer
+from SymbolTables import SymbolTables
+from VMWriter import VMWriter
+from typing import Optional
 
 class CompilationEngine:
     def __init__(self, outputFile, jackTokenizer: JackTokenizer):
-        self._outputFile = outputFile
         self._jackTokenizer = jackTokenizer
+        self._symbolTables = SymbolTables()
+        self._vmWriter = VMWriter(outputFile)
+        self._labelCounter = 0
 
-    def process(self, expected: str):
-        if self._jackTokenizer.currToken == expected:
-            tokenType = self._jackTokenizer.tokenType()
-            self._outputFile.write(f"<{tokenType}> {self._jackTokenizer.currToken} </{tokenType}>\n")
-        else:
-            raise SyntaxError(f"Syntax Error: Expected '{expected}' but got '{self._jackTokenizer.currToken}'")
-        self._jackTokenizer.advance()
+    def newLabel(self) -> int:
+        labelNumber = self._labelCounter
+        self._labelCounter += 1
+        return labelNumber
 
     def compileClass(self):
-        self._outputFile.write("<class>\n")
-        self.process("class")
-        self.process(self._jackTokenizer.currToken)
-        self.process("{")
-        while self.isClassVarDec():
-            self.compileClassVarDec()
+        if self._jackTokenizer.currToken == "class":
+            self._jackTokenizer.advance()
 
-        while self.isSubroutineDec():
-            self.compileSubroutineDec()
-        self.process("}")
-        self._outputFile.write("</class>\n")
+            className = self._jackTokenizer.currToken
+            self.className = className
+            self._jackTokenizer.advance()
+
+            if self._jackTokenizer.currToken == "{":
+                self._jackTokenizer.advance()
+            else:
+                raise SyntaxError(f"Expected '{{' after class name, got '{self._jackTokenizer.currToken}'")
+
+            while self.isClassVarDec(self._jackTokenizer.currToken):
+                self.compileClassVarDec()
+
+            while self.isSubroutineDec(self._jackTokenizer.currToken):
+                self.compileSubroutineDec()
+
+            if self._jackTokenizer.currToken == "}":
+                self._jackTokenizer.advance()
+            else:
+                raise SyntaxError(f"Expected '}}' at end of class, got '{self._jackTokenizer.currToken}'")
+        else:
+            raise SyntaxError(f"Expected 'class', got '{self._jackTokenizer.currToken}'")
 
     def compileClassVarDec(self):
-        self._outputFile.write("<classVarDec>\n")
-        self.process(self._jackTokenizer.currToken)
-        if self.isInteger() or self.isChar() or self.isBoolean() or self.isIdentifier():
-            self.process(self._jackTokenizer.currToken)
-        else:
-            raise SyntaxError(f"Syntax Error: Expected 'int', 'char', 'boolean', or 'identifier' but got '{self._jackTokenizer.currToken}'")
+        if self.isClassVarDec(self._jackTokenizer.currToken):
+            kind = self._jackTokenizer.currToken
+            self._jackTokenizer.advance()
 
-        if self.isIdentifier():
-            self.process(self._jackTokenizer.currToken)
-        else:
-            raise SyntaxError(f"Syntax Error: Expected 'identifier' but got '{self._jackTokenizer.currToken}'")
+            typeName = self._jackTokenizer.currToken
+            self._jackTokenizer.advance()
 
-        while self._jackTokenizer.currToken == ",":
-            self.process(",")
-            if self.isIdentifier():
-                self.process(self._jackTokenizer.currToken)
+            varName = self._jackTokenizer.currToken
+            self._symbolTables.define(varName, typeName, kind)
+            self._jackTokenizer.advance()
+
+            while self._jackTokenizer.currToken == ",":
+                self._jackTokenizer.advance()
+                varName = self._jackTokenizer.currToken
+                self._symbolTables.define(varName, typeName, kind)
+                self._jackTokenizer.advance()
+
+            if self._jackTokenizer.currToken == ";":
+                self._jackTokenizer.advance()
             else:
-                raise SyntaxError(f"Syntax Error: Expected 'identifier' but got '{self._jackTokenizer.currToken}'")
-
-        self.process(";")
-        self._outputFile.write("</classVarDec>\n")
+                raise SyntaxError(f"Expected ';' after class var declaration, got '{self._jackTokenizer.currToken}'")
+        else:
+            raise SyntaxError(f"Expected class var declaration, got '{self._jackTokenizer.currToken}'")
 
     def compileDo(self):
-        self._outputFile.write("<doStatement>\n")
-        self.process("do")
-        self.compileSubroutineCall()
-        self.process(";")
-        self._outputFile.write("</doStatement>\n")
+        if self._jackTokenizer.currToken == "do":
+            self._jackTokenizer.advance() 
+            
+            name = self._jackTokenizer.currToken
+            if not self.isIdentifier(name):
+                raise SyntaxError(f"Expected identifier after 'do', got '{name}'")
+            self._jackTokenizer.advance()
+            
+            self.compileSubroutineCall(name)
+
+            if self._jackTokenizer.currToken == ";":
+                self._jackTokenizer.advance() 
+                self._vmWriter.writePop("temp", 0) 
+            else:
+                raise SyntaxError(f"Expected ';' after do-statement, got '{self._jackTokenizer.currToken}'")
+        else:
+            raise SyntaxError(f"Expected 'do', got '{self._jackTokenizer.currToken}'")
 
     def compileExpression(self):
-        self._outputFile.write("<expression>\n")
         self.compileTerm()
-        while self.isBinaryOperation():
-            self.process(self._jackTokenizer.currToken)
+        while self.isBinaryOperation(self._jackTokenizer.currToken):
+            operation = self._jackTokenizer.currToken
+            self._jackTokenizer.advance()
             self.compileTerm()
-        self._outputFile.write("</expression>\n")
+            self._vmWriter.writeOperation(operation)
 
-    def compileExpressionList(self):
-        self._outputFile.write("<expressionList>\n")
+    def compileExpressionList(self) -> int:
+        nArgs = 0
         if self._jackTokenizer.currToken != ")":
             self.compileExpression()
+            nArgs += 1
             while self._jackTokenizer.currToken == ",":
-                self.process(",")
+                self._jackTokenizer.advance()
                 self.compileExpression()
-        self._outputFile.write("</expressionList>\n")
+                nArgs += 1
+        return nArgs
+
 
     def compileIf(self):
-        self._outputFile.write("<ifStatement>\n")
-        self.process("if")
-        self.process("(")
-        self.compileExpression()
-        self.process(")")
-        self.process("{")
-        self.compileStatements()
-        self.process("}")
-        if self._jackTokenizer.currToken == "else":
-            self.process("else")
-            self.process("{")
-            self.compileStatements()
-            self.process("}")
-        self._outputFile.write("</ifStatement>\n")
+        if self._jackTokenizer.currToken == "if":
+            self._jackTokenizer.advance()  
+            
+            if self._jackTokenizer.currToken == "(":
+                self._jackTokenizer.advance()
+                self.compileExpression()
+                if self._jackTokenizer.currToken == ")":
+                    self._jackTokenizer.advance()
+                else:
+                    raise SyntaxError(f"Expected ')', got '{self._jackTokenizer.currToken}'")
+            else:
+                raise SyntaxError(f"Expected '(', got '{self._jackTokenizer.currToken}'")
+
+            labelElse = f"IF.ELSE{self.newLabel()}"
+            labelEnd  = f"IF.END{self.newLabel()}"
+            
+            self._vmWriter.writeArithmetic("not")
+            self._vmWriter.writeIf(labelElse)
+
+            if self._jackTokenizer.currToken == "{":
+                self._jackTokenizer.advance()
+                self.compileStatements()
+                if self._jackTokenizer.currToken == "}":
+                    self._jackTokenizer.advance()
+                else:
+                    raise SyntaxError(f"Expected '}}', got '{self._jackTokenizer.currToken}'")
+            else:
+                raise SyntaxError(f"Expected '{{', got '{self._jackTokenizer.currToken}'")
+
+            if self._jackTokenizer.currToken == "else":
+                self._vmWriter.writeGoto(labelEnd)     
+                self._vmWriter.writeLabel(labelElse)   
+                self._jackTokenizer.advance()          
+                if self._jackTokenizer.currToken == "{":
+                    self._jackTokenizer.advance()
+                    self.compileStatements()
+                    if self._jackTokenizer.currToken == "}":
+                        self._jackTokenizer.advance()
+                    else:
+                        raise SyntaxError(f"Expected '}}' after else, got '{self._jackTokenizer.currToken}'")
+                else:
+                    raise SyntaxError(f"Expected '{{' after else, got '{self._jackTokenizer.currToken}'")
+                self._vmWriter.writeLabel(labelEnd)
+            else:
+                self._vmWriter.writeLabel(labelElse)
+        else:
+            raise SyntaxError(f"Expected 'if', got '{self._jackTokenizer.currToken}'")
 
     def compileLet(self):
-        self._outputFile.write("<letStatement>\n")
-        self.process("let")
-        if self.isIdentifier():
-            self.process(self._jackTokenizer.currToken)
+        if self._jackTokenizer.currToken == "let":
+            self._jackTokenizer.advance()
+            varName = self._jackTokenizer.currToken
+            if self.isIdentifier(varName):
+                self._jackTokenizer.advance()
+            else:
+                raise SyntaxError(f"Expected 'identifier' but got '{varName}'")
+            
+            isArray = False
+            if self._jackTokenizer.currToken == "[":
+                isArray = True
+                segment = self._symbolTables.kindOf(varName)
+                index = self._symbolTables.indexOf(varName)
+                self._vmWriter.writePush(segment, index)
+                self._jackTokenizer.advance()
+                self.compileExpression()
+                if self._jackTokenizer.currToken == "]":
+                    self._jackTokenizer.advance()
+                    self._vmWriter.writeArithmetic("add")
+                else:
+                    raise SyntaxError(f"Expected ']' but got '{self._jackTokenizer.currToken}'")
+            
+            if self._jackTokenizer.currToken == "=":
+                self._jackTokenizer.advance()
+                self.compileExpression()
+                if self._jackTokenizer.currToken == ";":
+                    self._jackTokenizer.advance()
+                else:
+                    raise SyntaxError(f"Expected ';' but got '{self._jackTokenizer.currToken}'")
+            else:
+                raise SyntaxError(f"Expected '=' but got '{self._jackTokenizer.currToken}'")
+
+            if isArray:
+                self._vmWriter.writePop("temp", 0)
+                self._vmWriter.writePop("pointer", 1)
+                self._vmWriter.writePush("temp", 0)
+                self._vmWriter.writePop("that", 0)
+            else:
+                segment = self._symbolTables.kindOf(varName)
+                index = self._symbolTables.indexOf(varName)
+                self._vmWriter.writePop(segment, index)
         else:
-            raise SyntaxError(f"Syntax Error: Expected 'varName' but got '{self._jackTokenizer.currToken}'")
+            raise SyntaxError(f"Expected 'let' but got '{self._jackTokenizer.currToken}'")
 
-        if self._jackTokenizer.currToken == "[":
-            self.process("[")
-            self.compileExpression()
-            self.process("]")
-
-        self.process("=")
-        self.compileExpression()
-        self.process(";")
-        self._outputFile.write("</letStatement>\n")
 
     def compileParameterList(self):
-        self._outputFile.write("<parameterList>\n")
         if self._jackTokenizer.currToken != ")":
-            if self.isInteger() or self.isChar() or self.isBoolean() or self.isIdentifier():
-                self.process(self._jackTokenizer.currToken)
-            else:
-                raise SyntaxError(f"Syntax Error: Expected 'int', 'char', 'boolean', or 'identifier' but got '{self._jackTokenizer.currToken}'")
+            typeName = self._jackTokenizer.currToken
+            self._jackTokenizer.advance()
 
-            if self.isIdentifier():
-                self.process(self._jackTokenizer.currToken)
-            else:
-                raise SyntaxError(f"Syntax Error: Expected 'identifier' but got '{self._jackTokenizer.currToken}'")
+            varName = self._jackTokenizer.currToken
+            self._symbolTables.define(varName, typeName, "argument")
+            self._jackTokenizer.advance()
 
             while self._jackTokenizer.currToken == ",":
-                self.process(",")
-                if self.isInteger() or self.isChar() or self.isBoolean() or self.isIdentifier():
-                    self.process(self._jackTokenizer.currToken)
-                else:
-                    raise SyntaxError(f"Syntax Error: Expected 'int', 'char', 'boolean', or 'identifier' but got '{self._jackTokenizer.currToken}'")
-                    
-                if self.isIdentifier():
-                    self.process(self._jackTokenizer.currToken)
-                else:
-                    raise SyntaxError(f"Syntax Error: Expected 'identifier' but got '{self._jackTokenizer.currToken}'")
-
-        self._outputFile.write("</parameterList>\n")
+                self._jackTokenizer.advance()
+                typeName = self._jackTokenizer.currToken
+                self._jackTokenizer.advance()
+                varName = self._jackTokenizer.currToken
+                self._symbolTables.define(varName, typeName, "argument")
+                self._jackTokenizer.advance()
 
     def compileReturn(self):
-        self._outputFile.write("<returnStatement>\n")
-        self.process("return")
-        if self._jackTokenizer.currToken != ";":
+        if self._jackTokenizer.currToken == "return":
+            self._jackTokenizer.advance()
+        else:
+            raise SyntaxError(f"Expected 'return' but got '{self._jackTokenizer.currToken}'")
+
+        if self._jackTokenizer.currToken == ";":
+            self._vmWriter.writePush("constant", 0)
+        else:
             self.compileExpression()
-        self.process(";")
-        self._outputFile.write("</returnStatement>\n")
+
+        if self._jackTokenizer.currToken == ";":
+            self._jackTokenizer.advance()
+            self._vmWriter.writeReturn()
+        else:
+            raise SyntaxError(f"Expected ';', got '{self._jackTokenizer.currToken}'")
 
     def compileStatements(self):
-        self._outputFile.write("<statements>\n")
-
-        while self.isStatement():
+        while self.isStatement(self._jackTokenizer.currToken):
             if self._jackTokenizer.currToken == "let":
                 self.compileLet()
             elif self._jackTokenizer.currToken == "if":
@@ -154,161 +244,273 @@ class CompilationEngine:
                 self.compileWhile()
             elif self._jackTokenizer.currToken == "do":
                 self.compileDo()
-            else:
+            elif self._jackTokenizer.currToken == "return":
                 self.compileReturn()
+            else:
+                pass
 
-        self._outputFile.write("</statements>\n")
+    def compileSubroutineBody(self, subroutineName, subroutineKind):
+        if self._jackTokenizer.currToken == "{":
+            self._jackTokenizer.advance()
 
-    def compileSubroutineBody(self):
-        self._outputFile.write("<subroutineBody>\n")
-        self.process("{")
-        while self._jackTokenizer.currToken == "var":
-            self.compileVarDec()
-        self.compileStatements()
-        self.process("}")
-        self._outputFile.write("</subroutineBody>\n")
+            while self._jackTokenizer.currToken == "var":
+                self.compileVarDec()
+
+            nLocals = self._symbolTables.varCount("local")
+            fullName = f"{self.className}.{subroutineName}"
+            self._vmWriter.writeFunction(fullName, nLocals)
+
+            
+            if subroutineKind == "constructor":
+                nFields = self._symbolTables.varCount("field")
+                self._vmWriter.writePush("constant", nFields)
+                self._vmWriter.writeCall("Memory.alloc", 1)
+                self._vmWriter.writePop("pointer", 0)
+            elif subroutineKind == "method":
+                self._vmWriter.writePush("argument", 0)
+                self._vmWriter.writePop("pointer", 0)
+
+            self.compileStatements()
+
+            if self._jackTokenizer.currToken == "}":
+                self._jackTokenizer.advance()
+            else:
+                raise SyntaxError(f"Expected '}}' at end of subroutine body, got '{self._jackTokenizer.currToken}'")
+        else:
+            raise SyntaxError(f"Expected '{{' at start of subroutine body, got '{self._jackTokenizer.currToken}'")
 
     def compileSubroutineCall(self, name: str = None):
+        
         if name is None:
-            if self.isIdentifier():
-                firstName = self._jackTokenizer.currToken
-                self.process(firstName)
-            else:
-                raise SyntaxError(f"Syntax Error: Expected 'identifier' but got '{self._jackTokenizer.currToken}'")
-        else:
-            firstName = name
-            self._outputFile.write(f"<identifier> {firstName} </identifier>\n")
+            name = self._jackTokenizer.currToken
+            self._jackTokenizer.advance()
+
+        nArgs = 0
+        fullName = ""
 
         if self._jackTokenizer.currToken == ".":
-            self.process(".")
-            if self.isIdentifier():
-                self.process(self._jackTokenizer.currToken)
-            else:
-                raise SyntaxError(f"Syntax Error: Expected 'subroutineName' but got '{self._jackTokenizer.currToken}'")
+            self._jackTokenizer.advance()
+            subName = self._jackTokenizer.currToken
+            self._jackTokenizer.advance()
 
-        self.process("(")
-        self.compileExpressionList()
-        self.process(")")
+            if self._symbolTables.kindOf(name) is not None:
+                
+                segment = self._symbolTables.kindOf(name)
+                index = self._symbolTables.indexOf(name)
+                typeName = self._symbolTables.typeOf(name)
+                self._vmWriter.writePush(segment, index)
+                nArgs += 1
+                fullName = f"{typeName}.{subName}"
+            else:
+                
+                fullName = f"{name}.{subName}"
+        else:
+            
+            self._vmWriter.writePush("pointer", 0)
+            nArgs += 1
+            fullName = f"{self.className}.{name}"
+
+        if self._jackTokenizer.currToken == "(":
+            self._jackTokenizer.advance()
+            nArgs += self.compileExpressionList()
+            if self._jackTokenizer.currToken == ")":
+                self._jackTokenizer.advance()
+            else:
+                raise SyntaxError(f"Expected ')', got '{self._jackTokenizer.currToken}'")
+        else:
+            raise SyntaxError(f"Expected '(', got '{self._jackTokenizer.currToken}'")
+
+        self._vmWriter.writeCall(fullName, nArgs)
 
     def compileSubroutineDec(self):
-        self._outputFile.write("<subroutineDec>\n")
-        self.process(self._jackTokenizer.currToken)
-        if self.isVoid() or self.isInteger() or self.isChar() or self.isBoolean() or self.isIdentifier():
-            self.process(self._jackTokenizer.currToken)
-        else:
-            raise SyntaxError(f"Syntax Error: Expected 'void', 'int', 'char', 'boolean', or 'identifier' but got '{self._jackTokenizer.currToken}'")
+        if self.isSubroutineDec(self._jackTokenizer.currToken):
+            self._symbolTables.startSubroutine()  
 
-        if self.isIdentifier():
-            self.process(self._jackTokenizer.currToken)
-        else:
-            raise SyntaxError(f"Syntax Error: Expected 'identifier' but got '{self._jackTokenizer.currToken}'")
+            subroutineKind = self._jackTokenizer.currToken  
+            self._jackTokenizer.advance()
 
-        self.process("(")
-        self.compileParameterList()
-        self.process(")")
-        self.compileSubroutineBody()
-        self._outputFile.write("</subroutineDec>\n")
+            returnType = self._jackTokenizer.currToken      
+            self._jackTokenizer.advance()
+
+            subroutineName = self._jackTokenizer.currToken
+            self._jackTokenizer.advance()
+
+            if self._jackTokenizer.currToken == "(":
+                self._jackTokenizer.advance()
+                self.compileParameterList()
+                if self._jackTokenizer.currToken == ")":
+                    self._jackTokenizer.advance()
+                else:
+                    raise SyntaxError(f"Expected ')', got '{self._jackTokenizer.currToken}'")
+            else:
+                raise SyntaxError(f"Expected '(', got '{self._jackTokenizer.currToken}'")
+
+            self.compileSubroutineBody(subroutineName, subroutineKind)
+        else:
+            raise SyntaxError(f"Expected subroutine declaration, got '{self._jackTokenizer.currToken}'")
 
     def compileTerm(self):
-        self._outputFile.write("<term>\n")
-
         tokenType = self._jackTokenizer.tokenType()
-        token = self._jackTokenizer.currToken
+        tokenVal  = self._jackTokenizer.currToken
 
         if tokenType == "integerConstant":
-            self.process(token)
+            self._vmWriter.writePush("constant", int(tokenVal))
+            self._jackTokenizer.advance()
         elif tokenType == "stringConstant":
-            self.process(token)
-        elif self.isKeywordConstant():
-            self.process(token)
-        elif self.isIdentifier():
-            firstName = token
-            self.process(firstName)
-            if self._jackTokenizer.currToken == "[":
-                self.process("[")
-                self.compileExpression()
-                self.process("]")
-            elif self._jackTokenizer.currToken in ("(", "."):
-                self.compileSubroutineCall(firstName)
-        elif token == "(":
-            self.process("(")
-            self.compileExpression()
-            self.process(")")
-        elif self.isUnaryOperation():
-            self.process(token)
-            self.compileTerm()
-        else:
-            raise SyntaxError(f"Syntax Error: Expected 'valid term' but got '{token}'")
+            stringVal = tokenVal
+            self._vmWriter.writePush("constant", len(stringVal))
+            self._vmWriter.writeCall("String.new", 1)
+            for c in stringVal:
+                self._vmWriter.writePush("constant", ord(c))
+                self._vmWriter.writeCall("String.appendChar", 2)
+            self._jackTokenizer.advance()
+        elif self.isKeywordConstant(tokenVal):
+            if tokenVal == "true":
+                self._vmWriter.writePush("constant", 0)
+                self._vmWriter.writeArithmetic("not")
+            elif tokenVal in ("false", "null"):
+                self._vmWriter.writePush("constant", 0)
+            elif tokenVal == "this":
+                self._vmWriter.writePush("pointer", 0)
+            else:
+                raise SyntaxError(f"Unexpected keyword constant '{tokenVal}'")
+            self._jackTokenizer.advance()
+        elif tokenType == "identifier":
+            name = tokenVal
+            nextTok = self._jackTokenizer.peek()
 
-        self._outputFile.write("</term>\n")
+            if nextTok == "[":
+                segment = self._symbolTables.kindOf(name)
+                index = self._symbolTables.indexOf(name)
+                self._vmWriter.writePush(segment, index)
+                self._jackTokenizer.advance()  
+                self._jackTokenizer.advance()  
+                self.compileExpression()
+                if self._jackTokenizer.currToken == "]":
+                    self._jackTokenizer.advance()
+                else:
+                    raise SyntaxError(f"Expected ']', got '{self._jackTokenizer.currToken}'")
+                self._vmWriter.writeArithmetic("add")
+                self._vmWriter.writePop("pointer", 1)
+                self._vmWriter.writePush("that", 0)
+            elif nextTok in ("(", "."):
+                self._jackTokenizer.advance()
+                self.compileSubroutineCall(name)
+            else:
+                segment = self._symbolTables.kindOf(name)
+                index = self._symbolTables.indexOf(name)
+                self._vmWriter.writePush(segment, index)
+                self._jackTokenizer.advance()
+        elif tokenVal == "(":
+            self._jackTokenizer.advance()
+            self.compileExpression()
+            if self._jackTokenizer.currToken == ")":
+                self._jackTokenizer.advance()
+            else:
+                raise SyntaxError(f"Expected ')', got '{self._jackTokenizer.currToken}'")
+        elif self.isUnaryOperation(tokenVal):
+            op = tokenVal
+            self._jackTokenizer.advance()
+            self.compileTerm()
+            if op == "-":
+                self._vmWriter.writeArithmetic("neg")
+            elif op == "~":
+                self._vmWriter.writeArithmetic("not")
+        else:
+            raise SyntaxError(f"Unexpected term '{tokenVal}'")
 
     def compileVarDec(self):
-        self._outputFile.write("<varDec>\n")
         if self._jackTokenizer.currToken == "var":
-            self.process("var")
-            if self.isInteger() or self.isChar() or self.isBoolean() or self.isIdentifier():
-                self.process(self._jackTokenizer.currToken)
-            else:
-                raise SyntaxError(f"Syntax Error: Expected 'int', 'char', 'boolean', or 'identifier' but got '{self._jackTokenizer.currToken}'")
+            self._jackTokenizer.advance()  
+            typeName = self._jackTokenizer.currToken
+            self._jackTokenizer.advance()
 
-            if self.isIdentifier():
-                self.process(self._jackTokenizer.currToken)
-            else:
-                raise SyntaxError(f"Syntax Error: Expected 'identifier' but got '{self._jackTokenizer.currToken}'")
+            varName = self._jackTokenizer.currToken
+            self._symbolTables.define(varName, typeName, "local")
+            self._jackTokenizer.advance()
 
             while self._jackTokenizer.currToken == ",":
-                self.process(",")
-                if self.isIdentifier():
-                    self.process(self._jackTokenizer.currToken)
-                else:
-                    raise SyntaxError(f"Syntax Error: Expected 'identifier' but got '{self._jackTokenizer.currToken}'")
+                self._jackTokenizer.advance()
+                varName = self._jackTokenizer.currToken
+                self._symbolTables.define(varName, typeName, "local")
+                self._jackTokenizer.advance()
 
-            self.process(";")
-        self._outputFile.write("</varDec>\n")
+            if self._jackTokenizer.currToken == ";":
+                self._jackTokenizer.advance()
+            else:
+                raise SyntaxError(f"Expected ';' after var declaration, got '{self._jackTokenizer.currToken}'")
+        else:
+            raise SyntaxError(f"Expected 'var', got '{self._jackTokenizer.currToken}'")
 
     def compileWhile(self):
-        self._outputFile.write("<whileStatement>\n")
-        self.process("while")
-        self.process("(")
-        self.compileExpression()
-        self.process(")")
-        self.process("{")
-        self.compileStatements()
-        self.process("}")
-        self._outputFile.write("</whileStatement>\n")
+        if self._jackTokenizer.currToken == "while":
+            labelStart = f"WHILE.EXP{self.newLabel()}"
+            labelEnd   = f"WHILE.END{self.newLabel()}"
 
-    def isBinaryOperation(self) -> bool:
-        return self._jackTokenizer.currToken in ("+", "-", "*", "/", "&", "|", "<", ">", "=")
+            self._vmWriter.writeLabel(labelStart)
+            self._jackTokenizer.advance()
 
-    def isBoolean(self) -> bool:
-        return self._jackTokenizer.currToken == "boolean"
+            if self._jackTokenizer.currToken == "(":
+                self._jackTokenizer.advance()
+                self.compileExpression()
+                if self._jackTokenizer.currToken == ")":
+                    self._jackTokenizer.advance()
+                else:
+                    raise SyntaxError(f"Expected ')', got '{self._jackTokenizer.currToken}'")
+            else:
+                raise SyntaxError(f"Expected '(', got '{self._jackTokenizer.currToken}'")
 
-    def isChar(self) -> bool:
-        return self._jackTokenizer.currToken == "char"
+            self._vmWriter.writeArithmetic("not")
+            self._vmWriter.writeIf(labelEnd)
 
-    def isClassVarDec(self) -> bool:
-        return self._jackTokenizer.currToken in ("static", "field")
+            if self._jackTokenizer.currToken == "{":
+                self._jackTokenizer.advance()
+                self.compileStatements()
+                if self._jackTokenizer.currToken == "}":
+                    self._jackTokenizer.advance()
+                else:
+                    raise SyntaxError(f"Expected '}}' after while body, got '{self._jackTokenizer.currToken}'")
+            else:
+                raise SyntaxError(f"Expected '{{' after while condition, got '{self._jackTokenizer.currToken}'")
 
-    def isIdentifier(self) -> bool:
+            self._vmWriter.writeGoto(labelStart)
+            self._vmWriter.writeLabel(labelEnd)
+        else:
+            raise SyntaxError(f"Expected 'while', got '{self._jackTokenizer.currToken}'")
+
+
+    def isBinaryOperation(self, token: Optional[str]) -> bool:
+        return token in ("+", "-", "*", "/", "&", "|", "<", ">", "=")
+
+    def isBoolean(self, token: Optional[str]) -> bool:
+        return token == "boolean"
+
+    def isChar(self, token: Optional[str]) -> bool:
+        return token == "char"
+
+    def isClassVarDec(self, token: Optional[str]) -> bool:
+        return token in ("static", "field")
+
+    def isIdentifier(self, token: Optional[str]) -> bool:
         return self._jackTokenizer.tokenType() == "identifier"
 
-    def isInteger(self) -> bool:
-        return self._jackTokenizer.currToken == "int"
+    def isInteger(self, token: Optional[str]) -> bool:
+        return token == "int"
 
-    def isKeywordConstant(self) -> bool:
-        return self._jackTokenizer.currToken in ("true", "false", "null", "this")
+    def isKeywordConstant(self, token: Optional[str]) -> bool:
+        return token in ("true", "false", "null", "this")
 
-    def isStatement(self) -> bool:
-        return self._jackTokenizer.currToken in ("let", "if", "while", "do", "return")
+    def isStatement(self, token: Optional[str]) -> bool:
+        return token in ("let", "if", "while", "do", "return")
 
-    def isString(self) -> bool:
-        return self._jackTokenizer.tokenType() == "stringConstant"
+    def isString(self, token: Optional[str]) -> bool:
+        return token == "stringConstant"
 
-    def isSubroutineDec(self) -> bool:
-        return self._jackTokenizer.currToken in ("constructor", "function", "method")
+    def isSubroutineDec(self, token: Optional[str]) -> bool:
+        return token in ("constructor", "function", "method")
 
-    def isUnaryOperation(self) -> bool:
-        return self._jackTokenizer.currToken in ("-", "~")
+    def isUnaryOperation(self, token: Optional[str]) -> bool:
+        return token in ("-", "~")
 
-    def isVoid(self) -> bool:
-        return self._jackTokenizer.currToken == "void"
+    def isVoid(self, token: Optional[str]) -> bool:
+        return token == "void"
