@@ -1,0 +1,36 @@
+function Main.main 4
+push constant 0
+pop local 1
+pop local 0
+push constant 0
+pop local 2
+label WHILE_EXP_0
+not
+if-goto WHILE_END_1
+add
+push constant 0
+pop local 0
+push constant 1
+pop local 2
+goto WHILE_EXP_0
+label WHILE_END_1
+push constant 0
+pop local 2
+push constant 0
+label WHILE_EXP_2
+not
+if-goto WHILE_END_3
+push local 3
+add
+pop pointer 1
+push that 0
+push constant 1
+pop local 2
+goto WHILE_EXP_2
+label WHILE_END_3
+push constant 0
+pop temp 0
+pop temp 0
+pop temp 0
+push constant 0
+return
