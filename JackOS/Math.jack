@@ -1,0 +1,174 @@
+/**
+ * Math class provides essential mathematical operations for the JackOS.
+ * 
+ * This class implements fundamental arithmetic operations including multiplication,
+ * division, square root, and utility functions. It uses optimized algorithms
+ * for performance and includes proper handling of signed integers and edge cases.
+ * The class maintains a lookup table of powers of 2 for efficient bit operations.
+ * 
+ * Key Features:
+ * - Fast multiplication using bit shifting
+ * - Efficient division with scaling optimization
+ * - Integer square root using binary search
+ * - Proper handling of negative numbers and edge cases
+ * - Power-of-2 lookup table for bit operations
+ */
+class Math {
+    static Array twoToThe;
+
+    /**
+     * Initializes the Math class by building a lookup table of powers of 2.
+     * 
+     * Creates an array containing 2^0 through 2^15 for efficient bit operations
+     * used in multiplication, division, and square root calculations.
+     */
+    function void init() {
+        var int i, power;
+        let twoToThe = Array.new(16);
+        let power = 1;
+        let i = 0;
+        while (i < 16) {
+            let twoToThe[i] = power;
+            let power = power + power;   
+            let i = i + 1;
+        }
+        return;
+    }
+
+    /**
+     * Returns the absolute value of an integer.
+     * 
+     * @param value The integer value
+     * @return The absolute value of the input
+     */
+    function int abs(int value) {
+        if (value < 0) { return -value; }
+        return value;
+    }
+
+    /**
+     * Multiplies two integers using bit-shifting algorithm.
+     * 
+     * Implements multiplication by treating one operand as a sum of powers of 2,
+     * then adding shifted versions of the other operand. Handles negative numbers
+     * by working with absolute values and applying the correct sign to the result.
+     * 
+     * @param x The first multiplicand
+     * @param y The second multiplicand
+     * @return The product of x and y
+     */
+    function int multiply(int x, int y) {
+        var int product, shiftedX, bitIndex, sign, absX, absY;
+
+        let sign = 1;
+        let absX = x;
+        let absY = y;
+        if (absX < 0) { let absX = -absX; let sign = -sign; }
+        if (absY < 0) { let absY = -absY; let sign = -sign; }
+
+        let product = 0;
+        let shiftedX = absX;    
+        let bitIndex = 0;
+
+        while (bitIndex < 16) {
+            if (~((absY & twoToThe[bitIndex]) = 0)) {
+                let product = product + shiftedX;
+            }
+            let shiftedX = shiftedX + shiftedX;   
+            let bitIndex = bitIndex + 1;
+        }
+
+        if (sign < 0) { let product = -product; }
+        return product;
+    }
+
+    /**
+     * Divides two integers using scaling optimization.
+     * 
+     * Implements division by repeatedly scaling the divisor to find the largest
+     * power of 2 that can be subtracted from the remainder. This approach
+     * reduces the number of iterations compared to simple repeated subtraction.
+     * Handles negative numbers and division by zero.
+     * 
+     * @param numerator The dividend
+     * @param denominator The divisor
+     * @return The quotient (returns 0 for division by zero)
+     */
+    function int divide(int numerator, int denominator) {
+        var int quotient, remainder, absDenominator, sign, shift, scaledDivisor;
+
+        if (denominator = 0) { return 0; }   
+
+        let sign = 1;
+        let remainder = numerator;
+        let absDenominator = denominator;
+        if (remainder < 0) { let remainder = -remainder; let sign = -sign; }
+        if (absDenominator < 0) { let absDenominator = -absDenominator; let sign = -sign; }
+
+        let quotient = 0;
+
+        while (~(remainder < absDenominator)) {
+            let scaledDivisor = absDenominator;
+            let shift = 0;
+            while (~(scaledDivisor + scaledDivisor > remainder) & (shift < 15)) {
+                let scaledDivisor = scaledDivisor + scaledDivisor;
+                let shift = shift + 1;
+            }
+            let remainder = remainder - scaledDivisor;
+            let quotient = quotient + twoToThe[shift];
+        }
+
+        if (sign < 0) { let quotient = -quotient; }
+        return quotient;
+    }
+    
+    /**
+     * Calculates the integer square root using binary search on bits.
+     * 
+     * Uses a bit-by-bit approach to find the largest integer whose square
+     * is less than or equal to the input value. Returns 0 for negative inputs.
+     * 
+     * @param value The number to find the square root of
+     * @return The integer square root (returns 0 for negative inputs)
+     */
+    function int sqrt(int value) {
+        var int root, bitIndex, candidate, candidateSquared;
+        if (value < 0) { return 0; }
+
+        let root = 0;
+        let bitIndex = 7;                 
+        while (bitIndex > -1) {
+            let candidate = root + twoToThe[bitIndex];
+            let candidateSquared = Math.multiply(candidate, candidate);
+            if ((candidateSquared < value) | (candidateSquared = value)) {
+                let root = candidate;
+            }
+            let bitIndex = bitIndex - 1;
+        }
+        return root;
+    }
+
+    /**
+     * Returns the maximum of two integers.
+     * 
+     * @param a The first integer
+     * @param b The second integer
+     * @return The larger of the two integers
+     */
+    function int max(int a, int b) {
+        if (a > b) { return a; }
+        return b;
+    }
+
+    /**
+     * Returns the minimum of two integers.
+     * 
+     * @param a The first integer
+     * @param b The second integer
+     * @return The smaller of the two integers
+     */
+    function int min(int a, int b) {
+        if (a < b) { return a; }
+        return b;
+    }
+}

@@ -1,0 +1,157 @@
+/**
+ * Memory class provides dynamic memory management for the JackOS.
+ * 
+ * This class implements a heap allocator with a free list data structure
+ * for managing dynamic memory allocation and deallocation. It provides
+ * direct memory access through peek/poke operations and handles memory
+ * fragmentation through block coalescing.
+ * 
+ * Memory Layout:
+ * - Addresses 0-2047: Stack and segment storage
+ * - Addresses 2048-16383: Heap (managed by this class)
+ * - Addresses 16384+: Screen and other memory-mapped I/O
+ * 
+ * Key Features:
+ * - First-fit allocation strategy
+ * - Automatic block coalescing to reduce fragmentation
+ * - Free list maintained in address order
+ * - Header-based block management (size + next pointer)
+ * - Direct memory access through peek/poke
+ */
+class Memory {
+    static Array ram;
+    static int freeList;
+
+    /**
+     * Initializes the memory management system.
+     * 
+     * Sets up the heap starting at address 2048 with a single free block
+     * covering the entire available heap space (14336 words). The free
+     * list is initialized with this single block.
+     */
+    function void init() {
+        var int heapStart, heapSize;
+        let ram = 0;                 
+        let heapStart = 2048;        
+        let heapSize  = 16384 - 2048; 
+        let freeList = heapStart;
+        let ram[freeList] = heapSize;
+        let ram[freeList + 1] = 0;   
+        return;
+    }
+
+    /**
+     * Reads a value from the specified memory address.
+     * 
+     * @param address The memory address to read from
+     * @return The value stored at the specified address
+     */
+    function int peek(int address) {
+        return ram[address];
+    }
+
+    /**
+     * Writes a value to the specified memory address.
+     * 
+     * @param address The memory address to write to
+     * @param value The value to store at the specified address
+     */
+    function void poke(int address, int value) {
+        let ram[address] = value;
+        return;
+    }
+
+    /**
+     * Allocates a block of memory from the heap.
+     * 
+     * Uses a first-fit allocation strategy to find a suitable free block.
+     * If the block is larger than needed, it splits the block and returns
+     * the requested size, leaving the remainder as a new free block.
+     * 
+     * @param size The number of words to allocate (minimum 1)
+     * @return A pointer to the allocated memory block, or 0 if allocation fails
+     */
+    function Array alloc(int size) {
+        var int need, curr, prev, blockSize, oldNext, newStart, newSize;
+        if (size < 1) { let size = 1; }
+        let need = size + 2;         
+        let prev = 0;
+        let curr = freeList;
+        while (~(curr = 0)) {
+            let blockSize = ram[curr];
+            if (~(blockSize < need)) {          
+                if (blockSize = need) {         
+                    let oldNext = ram[curr + 1];
+                    let ram[curr] = need;
+                    let ram[curr + 1] = 0;
+                    if (prev = 0) {
+                        let freeList = oldNext;
+                    } else {
+                        let ram[prev + 1] = oldNext;
+                    }
+                    return curr + 2;
+                } else {
+                    let oldNext = ram[curr + 1];
+                    let newStart = curr + need;
+                    let newSize  = blockSize - need;
+                    let ram[curr] = need;            
+                    let ram[curr + 1] = 0;
+                    let ram[newStart] = newSize;     
+                    let ram[newStart + 1] = oldNext;
+
+                    if (prev = 0) {
+                        let freeList = newStart;
+                    } else {
+                        let ram[prev + 1] = newStart;
+                    }
+                    return curr + 2;
+                }
+            }
+            let prev = curr;
+            let curr = ram[curr + 1];
+        }
+        return 0;
+    }
+
+    /**
+     * Deallocates a previously allocated memory block.
+     * 
+     * Returns the block to the free list and attempts to coalesce it with
+     * adjacent free blocks to reduce fragmentation. The free list is
+     * maintained in address order for efficient coalescing.
+     * 
+     * @param object A pointer to the memory block to deallocate
+     */
+    function void deAlloc(Array object) {
+        var int block, size, curr, prev;
+        let block = object - 2;
+        let size = ram[block];
+
+        let prev = 0;
+        let curr = freeList;
+        while (~(curr = 0) & (curr < block)) {
+            let prev = curr;
+            let curr = ram[curr + 1];
+        }
+        
+        let ram[block + 1] = curr;
+        if (prev = 0) {
+            let freeList = block;
+        } else {
+            let ram[prev + 1] = block;
+        }
+
+        if (~(curr = 0) & ((block + size) = curr)) {
+            let ram[block] = size + ram[curr];
+            let ram[block + 1] = ram[curr + 1];
+            let size = ram[block];
+            let curr = ram[block + 1];
+        }
+        
+        if (~(prev = 0) & ((prev + ram[prev]) = block)) {
+            let ram[prev] = ram[prev] + ram[block];
+            let ram[prev + 1] = ram[block + 1];
+        }
+        return;
+    }
+}

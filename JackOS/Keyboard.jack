@@ -1,0 +1,114 @@
+/**
+ * Keyboard class provides input handling functionality for user interaction.
+ * 
+ * This class manages keyboard input operations including character reading,
+ * line input, and integer parsing. It interfaces with the hardware keyboard
+ * through memory-mapped I/O and provides a high-level API for text input
+ * with visual feedback through the Output system.
+ * 
+ * Key Features:
+ * - Real-time key press detection
+ * - Character input with visual confirmation
+ * - Line input with backspace support
+ * - Integer parsing from string input
+ * - Integration with Output system for user feedback
+ */
+class Keyboard {
+    /**
+     * Initializes the keyboard system.
+     * 
+     * Currently a no-op function that maintains compatibility
+     * with the system initialization protocol.
+     */
+    function void init() {
+        return;
+    }
+
+    /**
+     * Checks if a key is currently being pressed.
+     * 
+     * Reads the keyboard status from memory-mapped I/O location 24576.
+     * Returns the ASCII code of the currently pressed key, or 0 if
+     * no key is pressed.
+     * 
+     * @return The ASCII code of the pressed key, or 0 if no key is pressed
+     */
+    function char keyPressed() {
+        return Memory.peek(24576);
+    }
+
+    /**
+     * Reads a single character from the keyboard with visual feedback.
+     * 
+     * Waits for a key press and provides visual confirmation by displaying
+     * the character on screen. The function blocks until a key is pressed
+     * and then released, ensuring reliable character input.
+     * 
+     * @return The ASCII code of the confirmed character input
+     */
+    function char readChar() {
+        var char currentKey, confirmedKey;
+        do Output.printChar(0);
+        let confirmedKey = 0;
+        while ((confirmedKey = 0) & (currentKey > 0)) {
+            let currentKey = Keyboard.keyPressed();
+            if (currentKey > 0) { let confirmedKey = currentKey; }
+        }
+        do Output.printChar(String.backSpace());
+        do Output.printChar(confirmedKey);
+        return confirmedKey;
+    }
+
+    /**
+     * Reads a complete line of text from the keyboard.
+     * 
+     * Displays a prompt message and reads user input character by character
+     * until the newline character is pressed. Supports backspace for editing
+     * the input string. The input is limited to 80 characters maximum.
+     * 
+     * @param message The prompt message to display to the user
+     * @return A String object containing the user's input line
+     */
+    function String readLine(String message) {
+        var char newlineChar, backspaceChar, inputChar;
+        var boolean isDone;
+        var String inputString;
+        let inputString = String.new(80);
+        do Output.printString(message);
+        let newlineChar = String.newLine();
+        let backspaceChar = String.backSpace();
+        let isDone = false;
+        while (isDone) {
+            let inputChar = Keyboard.readChar();
+            let isDone = (inputChar = newlineChar);
+            if (~isDone) {
+                if (inputChar = backspaceChar) {
+                    do String.eraseLastChar(inputString);
+                } else {
+                    let inputString = String.appendChar(inputString, inputChar);
+                }
+            }
+        }
+        return inputString;
+    }
+
+    /**
+     * Reads an integer value from the keyboard.
+     * 
+     * Prompts the user with a message and reads their input as a string,
+     * then parses it into an integer value. The input string is automatically
+     * disposed after parsing to prevent memory leaks.
+     * 
+     * @param message The prompt message to display to the user
+     * @return The parsed integer value from user input
+     */
+    function int readInt(String message) {
+        var String inputString;
+        var int parsedValue;
+        let inputString = Keyboard.readLine(message);
+        let parsedValue = String.intValue(inputString);
+        do String.dispose(inputString);
+        return parsedValue;
+    }
+}
+

@@ -1,0 +1,87 @@
+/**
+ * Sys class provides system-level operations and initialization for the JackOS.
+ * 
+ * This class serves as the main entry point and system controller for the
+ * JackOS environment. It handles system initialization, provides timing
+ * functions, error handling, and system shutdown. The init() function is
+ * the first function called when the system starts.
+ * 
+ * Key Features:
+ * - System initialization sequence for all OS components
+ * - Error handling and reporting with error codes
+ * - Timing and delay functions
+ * - System halt functionality
+ * - Integration point for user programs (Main.main())
+ */
+class Sys {
+    
+    /**
+     * Initializes the entire JackOS system.
+     * 
+     * Performs the complete system initialization sequence in the correct
+     * order: Memory, Math, Screen, Output, and Keyboard. After initialization,
+     * calls the user's main program and then halts the system.
+     */
+    function void init() {
+        do Memory.init();
+        do Math.init();
+        do Screen.init();
+        do Output.init();
+        do Keyboard.init();
+        do Main.main();
+        do Sys.halt();
+        return;
+    }
+
+    /**
+     * Halts the system by entering an infinite loop.
+     * 
+     * This function never returns and effectively stops all system
+     * execution. Used for normal program termination and error conditions.
+     */
+    function void halt() {
+        while (true) {}
+        return;
+    }
+
+    /**
+     * Waits for a specified duration using a busy-wait loop.
+     * 
+     * Provides a simple timing mechanism by executing a nested loop
+     * for the specified number of iterations. The actual timing depends
+     * on the system's execution speed.
+     * 
+     * @param duration The number of time units to wait
+     * @throws Sys.error(1) if duration is negative
+     */
+    function void wait(int duration) {
+        var int counter;
+        if (duration < 0) { do Sys.error(1); }
+        while (duration > 0) {
+            let counter = 50;
+            while (counter > 0) {
+                let counter = counter - 1;
+            }
+            let duration = duration - 1;
+        }
+        return;
+    }
+
+    /**
+     * Displays an error message and halts the system.
+     * 
+     * Prints "ERR" followed by the error code to the screen, then
+     * halts the system. This function is used throughout the OS
+     * to report various error conditions.
+     * 
+     * @param errorCode The numeric error code to display
+     */
+    function void error(int errorCode) {
+        do Output.printChar(69);   // 'E'
+        do Output.printChar(82);   // 'R'
+        do Output.printChar(82);   // 'R'
+        do Output.printInt(errorCode);
+        do Sys.halt();
+        return;
+    }
+}

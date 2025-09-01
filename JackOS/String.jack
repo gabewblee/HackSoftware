@@ -1,0 +1,194 @@
+/**
+ * String class provides string manipulation functionality for the JackOS.
+ * 
+ * This class implements a dynamic string data structure with fixed maximum
+ * length. It provides methods for character access, string modification,
+ * integer conversion, and common string operations. Strings are stored
+ * as arrays of characters with length tracking.
+ * 
+ * Key Features:
+ * - Fixed maximum length with dynamic current length
+ * - Character-level access and modification
+ * - Integer to string conversion and vice versa
+ * - String concatenation and character appending
+ * - Memory management with automatic disposal
+ * - Special character constants (newline, backspace, etc.)
+ */
+class String {
+    field int maxLength;    // Maximum number of characters the string can hold
+    field Array chars;      // Array storing the actual character data
+    field int length;       // Current number of characters in the string
+
+    /**
+     * Creates a new string with the specified maximum length.
+     * 
+     * Allocates memory for the character array and initializes the string
+     * to be empty (length 0). The maximum length determines the capacity
+     * of the string and cannot be changed after creation.
+     * 
+     * @param maxLen The maximum number of characters the string can hold
+     * @return A reference to the newly created string
+     * @throws Sys.error(14) if maxLen is negative
+     */
+    constructor String new(int maxLen) {
+        if (maxLen < 0) { do Sys.error(14); }
+        if (maxLen > 0) { let chars = Array.new(maxLen); }
+        let maxLength = maxLen;
+        let length = 0;
+        return this;
+    }
+
+    /**
+     * Disposes of the string and frees its memory.
+     * 
+     * Deallocates the character array and the string object itself.
+     * After calling dispose(), the string reference becomes invalid.
+     */
+    method void dispose() {
+        if (maxLength > 0) { do Array.dispose(chars); }
+        do Memory.deAlloc(this);
+        return;
+    }
+
+    /**
+     * Returns the current length of the string.
+     * 
+     * @return The number of characters currently in the string
+     */
+    method int length() { return length; }
+
+    /**
+     * Returns the character at the specified index.
+     * 
+     * @param index The position of the character to retrieve (0-based)
+     * @return The character at the specified index
+     * @throws Sys.error(15) if index is out of bounds
+     */
+    method char charAt(int index) {
+        if ((index < 0) | ((index > length) | (index = length))) { do Sys.error(15); }
+        return chars[index];
+    }
+
+    /**
+     * Sets the character at the specified index.
+     * 
+     * @param index The position where to set the character (0-based)
+     * @param c The character to set
+     * @throws Sys.error(16) if index is out of bounds
+     */
+    method void setCharAt(int index, char c) {
+        if ((index < 0) | ((index > length) | (index = length))) { do Sys.error(16); }
+        let chars[index] = c;
+        return;
+    }
+
+    /**
+     * Appends a character to the end of the string.
+     * 
+     * @param c The character to append
+     * @return A reference to this string for method chaining
+     * @throws Sys.error(17) if the string is at maximum capacity
+     */
+    method String appendChar(char c) {
+        if (length = maxLength) { do Sys.error(17); }
+        let chars[length] = c;
+        let length = length + 1;
+        return this;
+    }
+
+    /**
+     * Removes the last character from the string.
+     * 
+     * @throws Sys.error(18) if the string is empty
+     */
+    method void eraseLastChar() {
+        if (length = 0) { do Sys.error(18); }
+        let length = length - 1;
+        return;
+    }
+
+    /**
+     * Converts the string to an integer value.
+     * 
+     * Parses the string as a decimal integer, handling negative numbers
+     * (indicated by a leading minus sign). Stops parsing at the first
+     * non-digit character. Returns 0 for empty strings.
+     * 
+     * @return The integer value represented by the string
+     */
+    method int intValue() {
+        var boolean isDigit;
+        var boolean isNegative;
+        var int i, digit, value;
+        if (length = 0) { return 0; }
+        let isDigit = true;
+        let isNegative = false;
+        if (chars[0] = 45) { let isNegative = true; let i = 1; } else { let i = 0; }
+        while ((i < length) & isDigit) {
+            let digit = chars[i] - 48;
+            let isDigit = ~((digit < 0) | (digit > 9));
+            if (isDigit) { let value = Math.multiply(value, 10) + digit; let i = i + 1; }
+        }
+        if (isNegative) { let value = -value; }
+        return value;
+    }
+
+    /**
+     * Sets the string content to represent the given integer value.
+     * 
+     * Converts the integer to its decimal string representation,
+     * handling negative numbers with a leading minus sign. The string
+     * is truncated to fit within the maximum length if necessary.
+     * 
+     * @param value The integer value to convert to string
+     * @throws Sys.error(19) if the string has zero maximum length
+     */
+    method void setInt(int value) {
+        var boolean isNegative;
+        var Array digits;
+        var int i, quotient;
+        if (maxLength = 0) { do Sys.error(19); }
+        let digits = Array.new(6);
+        let isNegative = false;
+        if (value < 0) { let isNegative = true; let value = -value; }
+        let quotient = value;
+        while (quotient > 0) {
+            let digits[i] = 48 + (value - Math.multiply(Math.divide(value, 10), 10));
+            let i = i + 1;
+            let quotient = Math.divide(value, 10);
+            let value = quotient;
+        }
+        if (isNegative) { let chars[i] = 45; let i = i + 1; }
+        if (i = 0) { let chars[0] = 48; let length = 1; } else {
+            let length = 0;
+            while (length < i) {
+                let chars[length] = digits[i - length - 1];
+                let length = length + 1;
+            }
+        }
+        do Array.dispose(digits);
+        return;
+    }
+
+    /**
+     * Returns the newline character constant.
+     * 
+     * @return The ASCII code for newline (128)
+     */
+    function char newLine() { return 128; }
+    
+    /**
+     * Returns the backspace character constant.
+     * 
+     * @return The ASCII code for backspace (129)
+     */
+    function char backSpace() { return 129; }
+    
+    /**
+     * Returns the double quote character constant.
+     * 
+     * @return The ASCII code for double quote (34)
+     */
+    function char doubleQuote() { return 34; }
+}
+

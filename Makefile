@@ -1,6 +1,7 @@
 ASSEMBLER_DIR = Assembler
 VM_DIR = VirtualMachine
 COMPILER_DIR = Compiler
+OS_DIR = JackOS
 
 all: assembler virtual-machine
 
@@ -49,5 +50,6 @@ clean:
 	@cd $(ASSEMBLER_DIR) && $(MAKE) clean
 	@cd $(VM_DIR) && $(MAKE) clean
 	@cd $(COMPILER_DIR) && find . -name "*.vm" -delete && find . -name "*.asm" -delete && find . -name "*.hack" -delete
+	@cd $(OS_DIR) && find . -name "*.vm" -delete && find . -name "*.asm" -delete && find . -name "*.hack" -delete
 
 .PHONY: all assembler virtual-machine clean compile-dir

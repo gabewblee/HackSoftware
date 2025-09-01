@@ -1,0 +1,48 @@
+/**
+ * Array class provides dynamic array allocation and management functionality.
+ * 
+ * This class serves as a wrapper around the memory management system,
+ * providing a high-level interface for creating and disposing of arrays
+ * in the JackOS environment. Arrays are allocated from the heap and
+ * automatically managed through the garbage collection system.
+ * 
+ * Key Features:
+ * - Dynamic array creation with size validation
+ * - Automatic memory management through dispose() method
+ * - Integration with the underlying memory allocator
+ * - Error handling for invalid array sizes
+ */
+class Array {
+    
+    /**
+     * Creates a new array of the specified size.
+     * 
+     * Allocates memory from the heap for an array of the given size.
+     * The array elements are initialized to zero. The size must be
+     * a positive integer, otherwise a system error is triggered.
+     * 
+     * @param size The number of elements in the array (must be > 0)
+     * @return A reference to the newly allocated array
+     * @throws Sys.error(2) if size is not positive
+     */
+    function Array new(int size) {
+        if (~(size > 0)) { 
+            do Sys.error(2); 
+        }
+        return Memory.alloc(size);
+    }
+
+    /**
+     * Disposes of the array and frees its memory.
+     * 
+     * Returns the memory allocated for this array back to the heap.
+     * After calling dispose(), the array reference becomes invalid
+     * and should not be used. The garbage collector will handle
+     * the actual memory deallocation.
+     */
+    method void dispose() {
+        do Memory.deAlloc(this);
+        return;
+    }
+}
+
