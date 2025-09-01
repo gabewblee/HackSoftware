@@ -1,21 +1,82 @@
+"""
+Compilation Engine Module for the Jack Compiler.
+
+This module implements the core compilation logic for the Jack programming language.
+It parses Jack source code tokens and generates corresponding Virtual Machine
+bytecode. The compilation engine follows a recursive descent parsing approach
+and handles all Jack language constructs including classes, methods, statements,
+and expressions.
+
+The engine coordinates between the tokenizer, symbol tables, and VM writer to
+produce semantically correct VM code that can be executed by the VM emulator.
+"""
+
 from JackTokenizer import JackTokenizer
 from SymbolTables import SymbolTables
 from VMWriter import VMWriter
 from typing import Optional
 
+
 class CompilationEngine:
-    def __init__(self, outputFile, jackTokenizer: JackTokenizer):
+    """
+    Main compilation engine for Jack language to VM bytecode conversion.
+    
+    This class implements a recursive descent parser that processes Jack
+    source code tokens and generates corresponding VM commands. It handles
+    the complete compilation pipeline from token analysis to VM code generation.
+    
+    The engine maintains symbol tables for variable scoping, generates
+    unique labels for control flow, and coordinates with the VM writer
+    to produce properly formatted VM code.
+    
+    Attributes:
+        _jackTokenizer (JackTokenizer): Tokenizer for source code analysis
+        _symbolTables (SymbolTables): Symbol table manager for scoping
+        _vmWriter (VMWriter): VM code generator
+        _labelCounter (int): Counter for generating unique labels
+        className (str): Name of the class being compiled
+    """
+    
+    def __init__(self, outputFile, jackTokenizer: JackTokenizer) -> None:
+        """
+        Initialize the compilation engine.
+        
+        Args:
+            outputFile: The output file stream for VM code
+            jackTokenizer (JackTokenizer): Tokenizer for source code analysis
+        """
         self._jackTokenizer = jackTokenizer
         self._symbolTables = SymbolTables()
         self._vmWriter = VMWriter(outputFile)
         self._labelCounter = 0
 
     def newLabel(self) -> int:
+        """
+        Generate a unique label number for control flow.
+        
+        Returns:
+            int: A unique label number for this compilation session
+        """
         labelNumber = self._labelCounter
         self._labelCounter += 1
         return labelNumber
 
-    def compileClass(self):
+    def compileClass(self) -> None:
+        """
+        Compile a complete Jack class declaration.
+        
+        Parses and compiles a Jack class, including:
+        - Class name and opening brace
+        - Class variable declarations (fields and statics)
+        - Subroutine declarations (constructors, functions, methods)
+        - Closing brace
+        
+        The method processes the class structure and delegates to
+        specialized compilation methods for different components.
+        
+        Raises:
+            SyntaxError: If the class structure is invalid
+        """
         if self._jackTokenizer.currToken == "class":
             self._jackTokenizer.advance()
 
@@ -41,7 +102,20 @@ class CompilationEngine:
         else:
             raise SyntaxError(f"Expected 'class', got '{self._jackTokenizer.currToken}'")
 
-    def compileClassVarDec(self):
+    def compileClassVarDec(self) -> None:
+        """
+        Compile a class variable declaration.
+        
+        Parses and processes class-level variable declarations including
+        fields (instance variables) and static variables. Handles multiple
+        variables of the same type separated by commas.
+        
+        The method updates the symbol table with variable information
+        and advances the tokenizer appropriately.
+        
+        Raises:
+            SyntaxError: If the variable declaration syntax is invalid
+        """
         if self.isClassVarDec(self._jackTokenizer.currToken):
             kind = self._jackTokenizer.currToken
             self._jackTokenizer.advance()
@@ -66,7 +140,17 @@ class CompilationEngine:
         else:
             raise SyntaxError(f"Expected class var declaration, got '{self._jackTokenizer.currToken}'")
 
-    def compileDo(self):
+    def compileDo(self) -> None:
+        """
+        Compile a do-statement.
+        
+        Parses and compiles a do-statement, which is used for method calls
+        that don't return values. The method call is compiled and the
+        return value (if any) is discarded by popping to temp segment.
+        
+        Raises:
+            SyntaxError: If the do-statement syntax is invalid
+        """
         if self._jackTokenizer.currToken == "do":
             self._jackTokenizer.advance() 
             
@@ -85,7 +169,18 @@ class CompilationEngine:
         else:
             raise SyntaxError(f"Expected 'do', got '{self._jackTokenizer.currToken}'")
 
-    def compileExpression(self):
+    def compileExpression(self) -> None:
+        """
+        Compile an expression.
+        
+        Parses and compiles a Jack expression, which consists of terms
+        connected by binary operators. The method handles operator
+        precedence by processing terms and operators in sequence.
+        
+        For each binary operation, it compiles the left term, then the
+        right term, and finally generates the appropriate VM command
+        for the operator.
+        """
         self.compileTerm()
         while self.isBinaryOperation(self._jackTokenizer.currToken):
             operation = self._jackTokenizer.currToken
@@ -94,6 +189,16 @@ class CompilationEngine:
             self._vmWriter.writeOperation(operation)
 
     def compileExpressionList(self) -> int:
+        """
+        Compile a list of expressions.
+        
+        Parses and compiles a comma-separated list of expressions,
+        typically used for function/method arguments. Returns the
+        count of expressions compiled.
+        
+        Returns:
+            int: The number of expressions in the list
+        """
         nArgs = 0
         if self._jackTokenizer.currToken != ")":
             self.compileExpression()
