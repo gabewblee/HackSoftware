@@ -69,6 +69,20 @@ class SymbolTables:
         self._methodST = {}
         self._localCount = 0
         self._argCount = 0
+        self._isMethod = False 
+
+    def setMethod(self, isMethod: bool) -> None:
+        """
+        Set whether we're currently compiling a method.
+        
+        Args:
+            isMethod (bool): True if compiling a method, False for function/constructor
+        """
+        self._isMethod = isMethod
+        if isMethod:
+            self._argCount = 1 
+        else:
+            self._argCount = 0 
 
     def define(self, name: str, type: str, kind: str) -> None:
         """

@@ -440,6 +440,12 @@ class CompilationEngine:
             subroutineName = self._jackTokenizer.currToken
             self._jackTokenizer.advance()
 
+            # Set method flag before compiling parameters
+            if subroutineKind == "method":
+                self._symbolTables.setMethod(True)
+            else:
+                self._symbolTables.setMethod(False)
+
             if self._jackTokenizer.currToken == "(":
                 self._jackTokenizer.advance()
                 self.compileParameterList()
