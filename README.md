@@ -73,7 +73,7 @@ The software suite supplied with the book includes several programs for executio
 6. **ConvertToBin**: Binary conversion utility
 7. **Seven**: Simple number display program
 
-The JackOS code should be compiled and placed on the same folder as the compiled sample programs, which get jointly run on the emulators.
+The JackOS code should be compiled and placed on the same folder as the compiled sample programs, which get jointly run on the emulators. More information can be found here: https://www.nand2tetris.org
 
 ## Credits
 
