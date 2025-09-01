@@ -2,13 +2,13 @@
 Compilation Engine Module for the Jack Compiler.
 
 This module implements the core compilation logic for the Jack programming language.
-It parses Jack source code tokens and generates corresponding Virtual Machine
-bytecode. The compilation engine follows a recursive descent parsing approach
-and handles all Jack language constructs including classes, methods, statements,
-and expressions.
+It parses Jack source code tokens and generates corresponding Virtual Machine (VM)
+commands. The compilation engine follows a recursive descent parsing approach and
+handles all Jack language constructs including classes, methods, statements, and
+expressions.
 
 The engine coordinates between the tokenizer, symbol tables, and VM writer to
-produce semantically correct VM code that can be executed by the VM emulator.
+produce semantically correct VM code compatible with the supplied VM emulator.
 """
 
 from JackTokenizer import JackTokenizer
@@ -42,8 +42,8 @@ class CompilationEngine:
         Initialize the compilation engine.
         
         Args:
-            outputFile: The output file stream for VM code
-            jackTokenizer (JackTokenizer): Tokenizer for source code analysis
+            outputFile: The output file stream for VM code.
+            jackTokenizer (JackTokenizer): Tokenizer for source code analysis.
         """
         self._jackTokenizer = jackTokenizer
         self._symbolTables = SymbolTables()
@@ -55,7 +55,7 @@ class CompilationEngine:
         Generate a unique label number for control flow.
         
         Returns:
-            int: A unique label number for this compilation session
+            int: A unique label number for this compilation session.
         """
         labelNumber = self._labelCounter
         self._labelCounter += 1
@@ -75,7 +75,7 @@ class CompilationEngine:
         specialized compilation methods for different components.
         
         Raises:
-            SyntaxError: If the class structure is invalid
+            SyntaxError: If the class structure is invalid.
         """
         if self._jackTokenizer.currToken == "class":
             self._jackTokenizer.advance()
@@ -114,7 +114,7 @@ class CompilationEngine:
         and advances the tokenizer appropriately.
         
         Raises:
-            SyntaxError: If the variable declaration syntax is invalid
+            SyntaxError: If the variable declaration syntax is invalid.
         """
         if self.isClassVarDec(self._jackTokenizer.currToken):
             kind = self._jackTokenizer.currToken
@@ -149,7 +149,7 @@ class CompilationEngine:
         return value (if any) is discarded by popping to temp segment.
         
         Raises:
-            SyntaxError: If the do-statement syntax is invalid
+            SyntaxError: If the do-statement syntax is invalid.
         """
         if self._jackTokenizer.currToken == "do":
             self._jackTokenizer.advance() 
@@ -180,6 +180,9 @@ class CompilationEngine:
         For each binary operation, it compiles the left term, then the
         right term, and finally generates the appropriate VM command
         for the operator.
+
+        Raises:
+            SyntaxError: If the expression or any contained term is malformed.
         """
         self.compileTerm()
         while self.isBinaryOperation(self._jackTokenizer.currToken):
@@ -197,7 +200,7 @@ class CompilationEngine:
         count of expressions compiled.
         
         Returns:
-            int: The number of expressions in the list
+            int: The number of expressions in the list.
         """
         nArgs = 0
         if self._jackTokenizer.currToken != ")":
@@ -210,7 +213,17 @@ class CompilationEngine:
         return nArgs
 
 
-    def compileIf(self):
+    def compileIf(self) -> None:
+        """
+        Compile an if-statement with optional else block.
+        
+        Parses the condition in parentheses, compiles the 'then' block,
+        and, if present, the 'else' block. Emits labels and control-flow
+        VM commands to implement branching.
+
+        Raises:
+            SyntaxError: If parentheses/braces are missing or syntax is malformed.
+        """
         if self._jackTokenizer.currToken == "if":
             self._jackTokenizer.advance()  
             
@@ -259,7 +272,17 @@ class CompilationEngine:
         else:
             raise SyntaxError(f"Expected 'if', got '{self._jackTokenizer.currToken}'")
 
-    def compileLet(self):
+    def compileLet(self) -> None:
+        """
+        Compile a let-statement.
+        
+        Parses assignments to variables or array elements and emits the
+        appropriate VM code to evaluate the right-hand expression and
+        store the result. Handles array addressing when present.
+
+        Raises:
+            SyntaxError: If the let-statement syntax is malformed.
+        """
         if self._jackTokenizer.currToken == "let":
             self._jackTokenizer.advance()
             varName = self._jackTokenizer.currToken
@@ -305,7 +328,11 @@ class CompilationEngine:
             raise SyntaxError(f"Expected 'let' but got '{self._jackTokenizer.currToken}'")
 
 
-    def compileParameterList(self):
+    def compileParameterList(self) -> None:
+        """
+        Compile a method/function parameter list and define arguments in the
+        current subroutine scope symbol table.
+        """
         if self._jackTokenizer.currToken != ")":
             typeName = self._jackTokenizer.currToken
             self._jackTokenizer.advance()
@@ -322,7 +349,14 @@ class CompilationEngine:
                 self._symbolTables.define(varName, typeName, "argument")
                 self._jackTokenizer.advance()
 
-    def compileReturn(self):
+    def compileReturn(self) -> None:
+        """
+        Compile a return-statement. Pushes 0 for void returns, otherwise
+        compiles the returned expression, then emits the VM return.
+
+        Raises:
+            SyntaxError: If the return-statement syntax is malformed.
+        """
         if self._jackTokenizer.currToken == "return":
             self._jackTokenizer.advance()
         else:
@@ -339,7 +373,11 @@ class CompilationEngine:
         else:
             raise SyntaxError(f"Expected ';', got '{self._jackTokenizer.currToken}'")
 
-    def compileStatements(self):
+    def compileStatements(self) -> None:
+        """
+        Compile a sequence of statements until a non-statement token is seen.
+        Delegates to the appropriate compile* method per statement type.
+        """
         while self.isStatement(self._jackTokenizer.currToken):
             if self._jackTokenizer.currToken == "let":
                 self.compileLet()
@@ -354,7 +392,18 @@ class CompilationEngine:
             else:
                 pass
 
-    def compileSubroutineBody(self, subroutineName, subroutineKind):
+    def compileSubroutineBody(self, subroutineName, subroutineKind) -> None:
+        """
+        Compile the body of a subroutine: local declarations, optional
+        constructor/method prolog, and the statement sequence.
+        
+        Args:
+            subroutineName (str): The name of the subroutine.
+            subroutineKind (str): The kind of subroutine: "constructor", "function", or "method".
+
+        Raises:
+            SyntaxError: If braces are missing or body syntax is malformed.
+        """
         if self._jackTokenizer.currToken == "{":
             self._jackTokenizer.advance()
 
@@ -384,8 +433,18 @@ class CompilationEngine:
         else:
             raise SyntaxError(f"Expected '{{' at start of subroutine body, got '{self._jackTokenizer.currToken}'")
 
-    def compileSubroutineCall(self, name: str = None):
+    def compileSubroutineCall(self, name: str = None) -> None:
+        """
+        Compile a subroutine call (method or function). Handles implicit
+        this for methods and argument counting for the VM call.
         
+        Args:
+            name (Optional[str]): Optional identifier for the callee name already
+                consumed by the caller. If None, reads the name from the tokenizer.
+
+        Raises:
+            SyntaxError: If the call syntax (dot/parentheses) is malformed.
+        """
         if name is None:
             name = self._jackTokenizer.currToken
             self._jackTokenizer.advance()
@@ -427,7 +486,14 @@ class CompilationEngine:
 
         self._vmWriter.writeCall(fullName, nArgs)
 
-    def compileSubroutineDec(self):
+    def compileSubroutineDec(self) -> None:
+        """
+        Compile a subroutine declaration (constructor/function/method):
+        header, parameter list, and body.
+
+        Raises:
+            SyntaxError: If the subroutine declaration syntax is malformed.
+        """
         if self.isSubroutineDec(self._jackTokenizer.currToken):
             self._symbolTables.startSubroutine()  
 
@@ -440,7 +506,6 @@ class CompilationEngine:
             subroutineName = self._jackTokenizer.currToken
             self._jackTokenizer.advance()
 
-            # Set method flag before compiling parameters
             if subroutineKind == "method":
                 self._symbolTables.setMethod(True)
             else:
@@ -461,6 +526,16 @@ class CompilationEngine:
             raise SyntaxError(f"Expected subroutine declaration, got '{self._jackTokenizer.currToken}'")
 
     def compileTerm(self):
+        """
+        Compile a single term within an expression.
+        
+        Handles constants, string construction, keyword constants, variable
+        access (including arrays), parenthesized expressions, subroutine calls,
+        and unary operations.
+        
+        Raises:
+            SyntaxError: If the term structure is invalid.
+        """
         tokenType = self._jackTokenizer.tokenType()
         tokenVal  = self._jackTokenizer.currToken
 
@@ -530,7 +605,14 @@ class CompilationEngine:
         else:
             raise SyntaxError(f"Unexpected term '{tokenVal}'")
 
-    def compileVarDec(self):
+    def compileVarDec(self) -> None:
+        """
+        Compile a local variable declaration inside a subroutine body.
+        Defines the variables in the current subroutine scope.
+
+        Raises:
+            SyntaxError: If the variable declaration syntax is malformed.
+        """
         if self._jackTokenizer.currToken == "var":
             self._jackTokenizer.advance()  
             typeName = self._jackTokenizer.currToken
@@ -553,7 +635,14 @@ class CompilationEngine:
         else:
             raise SyntaxError(f"Expected 'var', got '{self._jackTokenizer.currToken}'")
 
-    def compileWhile(self):
+    def compileWhile(self) -> None:
+        """
+        Compile a while-statement. Emits labels and conditional jumps
+        to implement the loop semantics.
+
+        Raises:
+            SyntaxError: If parentheses/braces are missing or syntax is malformed.
+        """
         if self._jackTokenizer.currToken == "while":
             labelStart = f"WHILE.EXP{self.newLabel()}"
             labelEnd   = f"WHILE.END{self.newLabel()}"
@@ -591,37 +680,49 @@ class CompilationEngine:
 
 
     def isBinaryOperation(self, token: Optional[str]) -> bool:
+        """Check if a token is a binary operator."""
         return token in ("+", "-", "*", "/", "&", "|", "<", ">", "=")
 
     def isBoolean(self, token: Optional[str]) -> bool:
+        """Check if a token denotes the boolean type keyword."""
         return token == "boolean"
 
     def isChar(self, token: Optional[str]) -> bool:
+        """Check if a token denotes the char type keyword."""
         return token == "char"
 
     def isClassVarDec(self, token: Optional[str]) -> bool:
+        """Check if a token starts a class variable declaration."""
         return token in ("static", "field")
 
     def isIdentifier(self, token: Optional[str]) -> bool:
+        """Check if the current token type is an identifier."""
         return self._jackTokenizer.tokenType() == "identifier"
 
     def isInteger(self, token: Optional[str]) -> bool:
+        """Check if a token denotes the int type keyword."""
         return token == "int"
 
     def isKeywordConstant(self, token: Optional[str]) -> bool:
+        """Check if a token is one of the keyword constants."""
         return token in ("true", "false", "null", "this")
 
     def isStatement(self, token: Optional[str]) -> bool:
+        """Check if a token starts a statement."""
         return token in ("let", "if", "while", "do", "return")
 
     def isString(self, token: Optional[str]) -> bool:
+        """Check if a token denotes the string constant type name."""
         return token == "stringConstant"
 
     def isSubroutineDec(self, token: Optional[str]) -> bool:
+        """Check if a token starts a subroutine declaration."""
         return token in ("constructor", "function", "method")
 
     def isUnaryOperation(self, token: Optional[str]) -> bool:
+        """Check if a token is a unary operator."""
         return token in ("-", "~")
 
     def isVoid(self, token: Optional[str]) -> bool:
+        """Check if a token denotes the void type keyword."""
         return token == "void"

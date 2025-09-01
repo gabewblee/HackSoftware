@@ -11,7 +11,7 @@ to advance through tokens and determine their types.
 
 import Config
 import re
-from typing import Optional, List
+from typing import Optional
 
 
 class JackTokenizer:

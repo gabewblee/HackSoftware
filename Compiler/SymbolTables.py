@@ -10,7 +10,7 @@ The symbol tables are essential for semantic analysis and code generation,
 ensuring proper variable scoping and memory allocation in the VM.
 """
 
-from typing import Optional, Dict, Any
+from typing import Optional
 
 
 class SymbolTables:
