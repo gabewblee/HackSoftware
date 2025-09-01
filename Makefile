@@ -1,44 +1,44 @@
-ASSEMBLER_DIR = Assembler
-VM_DIR = VirtualMachine
-COMPILER_DIR = Compiler
-OS_DIR = JackOS
+ASSEMBLER_DIRECTORY = Assembler
+VM_DIRECTORY = VirtualMachine
+COMPILER_DIRECTORY = Compiler
+OS_DIRECTORY = JackOS
 
-all: assembler virtual-machine
+all: assembler vm
 
 assembler:
-	@cd $(ASSEMBLER_DIR) && $(MAKE)
+	@cd $(ASSEMBLER_DIRECTORY) && $(MAKE)
 
-virtual-machine:
-	@cd $(VM_DIR) && $(MAKE)
+vm:
+	@cd $(VM_DIRECTORY) && $(MAKE)
 
-%.hack: %.jack assembler virtual-machine
+%.hack: %.jack assembler vm
 	$(eval FILE := $(basename $(notdir $<)))
 	$(eval DIRECTORY := $(dir $<))
 	@echo "Compiling $< to VM code..."
-	@cd $(COMPILER_DIR) && python3 JackCompiler.py ../$<
+	@cd $(COMPILER_DIRECTORY) && python3 JackCompiler.py ../$<
 	@echo "Converting VM to assembly..."
-	@cd $(VM_DIR) && ./VMTranslator ../$(DIRECTORY)$(FILE).vm
+	@cd $(VM_DIRECTORY) && ./VMTranslator ../$(DIRECTORY)$(FILE).vm
 	@echo "Assembling to machine code..."
-	@cd $(ASSEMBLER_DIR) && ./Assembler ../$(DIRECTORY)$(FILE).asm
+	@cd $(ASSEMBLER_DIRECTORY) && ./Assembler ../$(DIRECTORY)$(FILE).asm
 	@echo "Generated $@"
 
-compile-dir: assembler virtual-machine
-	@if [ -z "$(DIR)" ]; then \
-		echo "Usage: make compile-dir DIR=<directory>"; \
-		echo "Example: make compile-dir DIR=Compiler/Square"; \
+directory: assembler vm
+	@if [ -z "$(DIRECTORY)" ]; then \
+		echo "Usage: make directory DIR=<directory>"; \
+		echo "Example: make directory DIR=Compiler/Square"; \
 		exit 1; \
 	fi
-	@echo "Compiling all .jack files in $(DIR)..."
-	@cd $(COMPILER_DIR) && python3 JackCompiler.py ../$(DIR)
+	@echo "Compiling all .jack files in $(DIRECTORY)..."
+	@cd $(COMPILER_DIRECTORY) && python3 JackCompiler.py ../$(DIRECTORY)
 	@echo "Converting VM files to assembly..."
-	@cd $(VM_DIR) && for vm in ../$(DIR)/*.vm; do \
+	@cd $(VM_DIRECTORY) && for vm in ../$(DIRECTORY)/*.vm; do \
 		if [ -f "$$vm" ]; then \
 			echo "Converting $$vm to assembly..."; \
 			./VMTranslator "$$vm"; \
 		fi; \
 	done
 	@echo "Assembling to machine code..."
-	@cd $(ASSEMBLER_DIR) && for asm in ../$(DIR)/*.asm; do \
+	@cd $(ASSEMBLER_DIRECTORY) && for asm in ../$(DIRECTORY)/*.asm; do \
 		if [ -f "$$asm" ]; then \
 			echo "Assembling $$asm to machine code..."; \
 			./Assembler "$$asm"; \
@@ -47,9 +47,9 @@ compile-dir: assembler virtual-machine
 	@echo "Compilation complete!"
 
 clean:
-	@cd $(ASSEMBLER_DIR) && $(MAKE) clean
-	@cd $(VM_DIR) && $(MAKE) clean
-	@cd $(COMPILER_DIR) && find . -name "*.vm" -delete && find . -name "*.asm" -delete && find . -name "*.hack" -delete
-	@cd $(OS_DIR) && find . -name "*.vm" -delete && find . -name "*.asm" -delete && find . -name "*.hack" -delete
+	@cd $(ASSEMBLER_DIRECTORY) && $(MAKE) clean
+	@cd $(VM_DIRECTORY) && $(MAKE) clean
+	@cd $(COMPILER_DIRECTORY) && find . -name "*.vm" -delete && find . -name "*.asm" -delete && find . -name "*.hack" -delete
+	@cd $(OS_DIRECTORY) && find . -name "*.vm" -delete && find . -name "*.asm" -delete && find . -name "*.hack" -delete
 
-.PHONY: all assembler virtual-machine clean compile-dir
+.PHONY: all assembler vm clean directory
