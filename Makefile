@@ -24,19 +24,22 @@ virtual-machine:
 compile-dir: assembler virtual-machine
 	@if [ -z "$(DIR)" ]; then \
 		echo "Usage: make compile-dir DIR=<directory>"; \
+		echo "Example: make compile-dir DIR=Compiler/Square"; \
 		exit 1; \
 	fi
 	@echo "Compiling all .jack files in $(DIR)..."
 	@cd $(COMPILER_DIR) && python3 JackCompiler.py ../$(DIR)
 	@echo "Converting VM files to assembly..."
-	@cd $(VM_DIR) && for vm in ../$(COMPILER_DIR)/$(DIR)/*.vm; do \
+	@cd $(VM_DIR) && for vm in ../$(DIR)/*.vm; do \
 		if [ -f "$$vm" ]; then \
+			echo "Converting $$vm to assembly..."; \
 			./VMTranslator "$$vm"; \
 		fi; \
 	done
 	@echo "Assembling to machine code..."
-	@cd $(ASSEMBLER_DIR) && for asm in ../$(COMPILER_DIR)/$(DIR)/*.asm; do \
+	@cd $(ASSEMBLER_DIR) && for asm in ../$(DIR)/*.asm; do \
 		if [ -f "$$asm" ]; then \
+			echo "Assembling $$asm to machine code..."; \
 			./Assembler "$$asm"; \
 		fi; \
 	done
