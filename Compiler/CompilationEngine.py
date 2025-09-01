@@ -196,8 +196,7 @@ class CompilationEngine:
         Compile a list of expressions.
         
         Parses and compiles a comma-separated list of expressions,
-        typically used for function/method arguments. Returns the
-        count of expressions compiled.
+        typically used for function/method arguments. 
         
         Returns:
             int: The number of expressions in the list.
