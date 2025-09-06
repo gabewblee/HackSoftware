@@ -162,7 +162,7 @@ class JackTokenizer:
         language specification.
         
         Returns:
-            str: Token type: "keyword", "symbol", "integerConstant",
+            str: "keyword", "symbol", "integerConstant",
                  "stringConstant", "identifier", or "invalid"
         """
         if self.isKeyword():
