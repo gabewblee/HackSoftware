@@ -77,4 +77,4 @@ The JackOS code should be compiled and placed on the same folder as the compiled
 
 ## Credits
 
-1. Noam Nisan and Shimon Schocken, "The Elements of Computing Systems", MIT Press
+1. Noam Nisan and Shimon Schocken, "The Elements of Computing Systems: Building a Modern Computer from First Principles", MIT Press
