@@ -38,13 +38,12 @@ make vm
 
 To compile a single Jack file XXX.jack, run the following:
 ```bash
-make <path/XXX.jack>
+make /path/to/your/file
 ```
 To compile a directory containing Jack files, run the following:
 ```bash
-make directory DIRECTORY=<path>
+make directory DIRECTORY=/path/to/your/directory
 ```
-Where **<>** should be removed and **path** should be replaced with the path to the file.
 
 ### Running
 
