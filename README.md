@@ -36,13 +36,21 @@ make vm
 
 ### Compilation
 
-To compile a single Jack file XXX.jack, run the following:
+To produce a .hack file from a .asm file, run the following from the Assembler directory:
+```bash
+./Assembler /path/to/your/file
+```
+To produce a .asm file from a .vm file, run the following from the VirtualMachine directory:
+```bash
+./VMTranslator /path/to/your/file
+```
+To fully compile a single Jack file XXX.jack, run the following:
 ```bash
 make /path/to/your/file
 ```
-To compile a directory containing Jack files, run the following:
+To fully compile a directory containing Jack files, run the following:
 ```bash
-make directory DIRECTORY=/path/to/your/directory
+make directory /path/to/your/directory
 ```
 
 ### Running
