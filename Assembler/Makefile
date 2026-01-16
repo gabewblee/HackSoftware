@@ -16,3 +16,4 @@ $(TARGET): $(OBJS)
 
 clean:
 	@rm -rf $(OBJS) $(TARGET)
+	find . -name "*.hack" -delete

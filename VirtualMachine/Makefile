@@ -16,3 +16,4 @@ $(TARGET): $(OBJS)
 
 clean:
 	rm -f $(OBJS) $(TARGET)
+	find . -name "*.asm" -delete

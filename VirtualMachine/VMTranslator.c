@@ -42,7 +42,7 @@ int main(int argc, char * argv[]) {
                 dirName++;
             }
             
-            char outputFileName[strlen(fileName) + strlen(dirName) + 5];
+            char outputFileName[strlen(fileName) + strlen(dirName) + 6];
             snprintf(outputFileName, sizeof(outputFileName), "%s/%s.asm", fileName, dirName);
             
             FILE * outputFile = fopen(outputFileName, "w");
